@@ -37,10 +37,10 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v4: Provider switching
 
-- [ ] Test with OpenAI (change .env)
-- [ ] Test with Ollama (change .env)
-- [ ] Document tested providers in README
-- [ ] Commit: `v4: verified with multiple providers`
+- [x] Test with OpenAI (change .env)
+- [x] Test with Ollama (change .env)
+- [x] Document tested providers in README
+- [x] Commit: `v4: verified with multiple providers`
 
 ## v5: SQLite state
 
