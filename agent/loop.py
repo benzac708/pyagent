@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import typer
@@ -66,6 +67,7 @@ def _run_loop(
     provider_name = None
     final_content = None
     saved = False
+    started_at = datetime.now(timezone.utc).isoformat()
 
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
 
@@ -123,7 +125,7 @@ def _run_loop(
 
     if not saved:
         try:
-            save_run(run_id, conv_id, provider_name, iterations, total_tokens, status, error)
+            save_run(run_id, conv_id, provider_name, iterations, total_tokens, status, error, started_at=started_at)
             saved = True
         except Exception:
             pass

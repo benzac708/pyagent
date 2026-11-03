@@ -36,6 +36,10 @@ def bash(command: str, timeout: int = 30) -> str:
         return "Error: bash tool is disabled (BASH_ENABLED=false)"
     if _is_blocked(command):
         return "Error: command blocked by safety filter"
+    if timeout < 1:
+        timeout = 1
+    if timeout > 300:
+        timeout = 300
     try:
         result = subprocess.run(
             command,

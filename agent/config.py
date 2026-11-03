@@ -43,8 +43,18 @@ def _redact_processor(logger: Any, method_name: str, event_dict: Any) -> Any:
     for key in list(event_dict.keys()):
         if _is_secret_key(key):
             event_dict[key] = "[REDACTED]"
-    # Redact any env value (length >= 8) appearing in string values (defence in depth).
-    secrets = [v for v in os.environ.values() if v and len(v) >= 8]
+    # Redact values of env vars whose names look secret-like (length >= 8).
+    secret_env_keys = ("KEY", "SECRET", "TOKEN", "PASSWORD", "PASSWD", "CREDENTIAL")
+    secrets = []
+    for k in os.environ:
+        if any(s in k.upper() for s in secret_env_keys):
+            v = os.getenv(k, "")
+            if v and len(v) >= 4:
+                secrets.append(v)
+    # Also include the known API keys explicitly.
+    for v in (os.getenv("API_KEY", ""), os.getenv("FALLBACK_API_KEY", "")):
+        if v and v not in secrets:
+            secrets.append(v)
     for key, value in list(event_dict.items()):
         if isinstance(value, str):
             for secret in secrets:

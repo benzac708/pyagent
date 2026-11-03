@@ -93,12 +93,18 @@ async def run_endpoint(req: RunRequest, request: Request) -> dict[str, Any]:
 
 
 @app.get("/runs")
-def runs_endpoint(limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+def runs_endpoint(request: Request, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
+    _check_auth(request)
+    if limit > 100:
+        limit = 100
     return list_runs(limit=limit, offset=offset)
 
 
 @app.get("/conversations")
-def conversations_endpoint(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+def conversations_endpoint(request: Request, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    _check_auth(request)
+    if limit > 100:
+        limit = 100
     return list_conversations(limit=limit, offset=offset)
 
 

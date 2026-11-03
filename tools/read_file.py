@@ -8,7 +8,18 @@ _MAX_BYTES = 1_000_000  # 1 MB cap to avoid memory/DoS blowups
 
 _BLOCKED_NAMES = {".env", ".env.local", ".env.production", ".env.development"}
 _BLOCKED_SUFFIXES = (".pem", ".key", ".p12", ".pfx", ".crt")
-_BLOCKED_SUBSTRINGS = ("secret", "credential", "private_key", "id_rsa", "id_ed25519")
+_BLOCKED_SUBSTRINGS = (
+    "secret",
+    "credential",
+    "private_key",
+    "id_rsa",
+    "id_ed25519",
+    "token",
+    "api_key",
+    "apikey",
+    "password",
+    "passwd",
+)
 
 
 def _is_sensitive(path: str) -> bool:

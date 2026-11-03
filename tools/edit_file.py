@@ -18,11 +18,19 @@ def edit_file(path: str, content: str) -> str:
     if _is_sensitive(path):
         return "Error: writing this file is not allowed (sensitive path)"
     try:
-        dir_name = os.path.dirname(os.path.abspath(path)) or "."
+        abs_path = os.path.abspath(path)
+        dir_name = os.path.dirname(abs_path) or "."
+        os.makedirs(dir_name, exist_ok=True)
+        # Preserve existing mode if file exists, else 0644.
+        if os.path.exists(abs_path):
+            mode = os.stat(abs_path).st_mode & 0o777
+        else:
+            mode = 0o644
         fd, tmp_path = tempfile.mkstemp(dir=dir_name)
         try:
             with os.fdopen(fd, "w") as f:
                 f.write(content)
+            os.chmod(tmp_path, mode)
             os.replace(tmp_path, path)
             return f"Successfully wrote {len(content)} bytes to {path}"
         except Exception:

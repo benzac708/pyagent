@@ -97,13 +97,16 @@ def save_run(
     total_tokens: int,
     status: str,
     error: Optional[str] = None,
+    started_at: Optional[str] = None,
 ) -> None:
     now = datetime.now(timezone.utc).isoformat()
+    if started_at is None:
+        started_at = now
     conn = get_conn()
     conn.execute(
         "INSERT INTO runs (id, conv_id, provider, iterations, total_tokens, "
         "status, error, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, conv_id, provider, iterations, total_tokens, status, error, now, now),
+        (run_id, conv_id, provider, iterations, total_tokens, status, error, started_at, now),
     )
     conn.commit()
     conn.close()
