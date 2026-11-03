@@ -1,0 +1,115 @@
+"""SQLite state: conversations, messages, run traces."""
+
+import json
+import sqlite3
+from datetime import datetime, timezone
+
+from agent.config import DB_PATH
+
+
+def get_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    """Create tables if they don't exist."""
+    conn = get_conn()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conv_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT,
+            tool_calls TEXT,
+            tool_call_id TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (conv_id) REFERENCES conversations(id)
+        );
+        CREATE TABLE IF NOT EXISTS runs (
+            id TEXT PRIMARY KEY,
+            conv_id TEXT NOT NULL,
+            provider TEXT,
+            iterations INTEGER,
+            total_tokens INTEGER,
+            status TEXT NOT NULL,
+            error TEXT,
+            started_at TEXT NOT NULL,
+            finished_at TEXT,
+            FOREIGN KEY (conv_id) REFERENCES conversations(id)
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+
+def create_conversation(conv_id: str):
+    now = datetime.now(timezone.utc).isoformat()
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR IGNORE INTO conversations (id, created_at, updated_at) VALUES (?, ?, ?)",
+        (conv_id, now, now),
+    )
+    conn.commit()
+    conn.close()
+
+
+def save_message(conv_id: str, role: str, content=None, tool_calls=None, tool_call_id=None):
+    now = datetime.now(timezone.utc).isoformat()
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO messages (conv_id, role, content, tool_calls, tool_call_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (conv_id, role, content, json.dumps(tool_calls) if tool_calls else None, tool_call_id, now),
+    )
+    conn.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (now, conv_id))
+    conn.commit()
+    conn.close()
+
+
+def save_run(run_id, conv_id, provider, iterations, total_tokens, status, error=None):
+    now = datetime.now(timezone.utc).isoformat()
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO runs (id, conv_id, provider, iterations, total_tokens, "
+        "status, error, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, conv_id, provider, iterations, total_tokens, status, error, now, now),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_conversation_messages(conv_id: str) -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT role, content, tool_calls, tool_call_id FROM messages WHERE conv_id = ? ORDER BY id",
+        (conv_id,),
+    ).fetchall()
+    conn.close()
+    result = []
+    for row in rows:
+        msg = {"role": row["role"]}
+        if row["content"] is not None:
+            msg["content"] = row["content"]
+        if row["tool_calls"]:
+            msg["tool_calls"] = json.loads(row["tool_calls"])
+        if row["tool_call_id"]:
+            msg["tool_call_id"] = row["tool_call_id"]
+        result.append(msg)
+    return result
+
+
+def list_runs(limit=10):
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, conv_id, provider, iterations, total_tokens, status, started_at "
+        "FROM runs ORDER BY started_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
