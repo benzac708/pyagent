@@ -44,12 +44,12 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v5: SQLite state
 
-- [ ] Create `agent/db.py` (init, save message, save run)
-- [ ] Store full conversation thread
-- [ ] Store run metadata (iterations, tokens, status, error)
-- [ ] Agent resumes conversation after restart
-- [ ] `sqlite3 agent.db "SELECT * FROM runs"` shows data
-- [ ] Commit: `v5: SQLite state + run traces`
+- [x] Create `agent/db.py` (init, save message, save run)
+- [x] Store full conversation thread
+- [x] Store run metadata (iterations, tokens, status, error)
+- [x] Agent resumes conversation after restart
+- [x] `sqlite3 agent.db "SELECT * FROM runs"` shows data
+- [x] Commit: `v5: SQLite state + run traces`
 
 ## v6: Observability
 
