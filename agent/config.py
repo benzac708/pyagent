@@ -9,13 +9,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_SECRET_KEYS = {"api_key", "apikey", "secret", "token", "password", "passwd"}
+# Exact key names that hold secrets (lowercased).
+_SECRET_KEY_NAMES = {"api_key", "apikey", "secret", "password", "passwd", "auth_token",
+                     "access_token", "refresh_token", "private_key"}
+# Key-name suffixes that indicate a secret value.
+_SECRET_SUFFIXES = ("_key", "_secret", "_password", "_passwd", "_token", "_private_key")
+
+
+def _is_secret_key(name: str) -> bool:
+    low = name.lower()
+    if low in _SECRET_KEY_NAMES:
+        return True
+    if low.endswith(_SECRET_SUFFIXES):
+        return True
+    # Avoid redacting metric fields like "total_tokens".
+    if "token" in low and not low.endswith("_token") and low != "token":
+        return False
+    return False
 
 
 def _redact_processor(logger, method_name, event_dict):
     """Redact values of any key whose name looks like a secret."""
     for key in list(event_dict.keys()):
-        if any(s in key.lower() for s in _SECRET_KEYS):
+        if _is_secret_key(key):
             event_dict[key] = "[REDACTED]"
     # Redact secret-like substrings in string values (defence in depth).
     for key, value in list(event_dict.items()):
