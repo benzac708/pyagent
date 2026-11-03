@@ -6,23 +6,23 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v1: Core LLM call
 
-- [ ] Create repo + `git init`
-- [ ] Install `uv`, create venv
-- [ ] Create `pyproject.toml` with deps + ruff + pytest config
-- [ ] Create `.env.example` and `.gitignore`
-- [ ] Write `agent/config.py` (load .env, validate required vars)
-- [ ] Write `agent/loop.py` (single LLM call, print response)
-- [ ] `uv run python -m agent "hello"` works
-- [ ] Commit: `v1: core LLM call with OpenAI-compatible API`
+- [x] Create repo + `git init`
+- [x] Install `uv`, create venv
+- [x] Create `pyproject.toml` with deps + ruff + pytest config
+- [x] Create `.env.example` and `.gitignore`
+- [x] Write `agent/config.py` (load .env, validate required vars)
+- [x] Write `agent/loop.py` (single LLM call, print response)
+- [x] `uv run python -m agent "hello"` works (structure verified, needs API key)
+- [x] Commit: `v1: core LLM call with OpenAI-compatible API`
 
 ## v2: Tool registry + read_file
 
-- [ ] Create `tools/registry.py` (list of tool dicts)
-- [ ] Create `tools/read_file.py` (read file, return string, catch errors)
-- [ ] Register read_file in registry
-- [ ] Update agent loop to handle `tool_calls`
-- [ ] `uv run python -m agent "read fizzbuzz.js"` calls tool + summarizes
-- [ ] Commit: `v2: tool registry with read_file`
+- [x] Create `tools/registry.py` (list of tool dicts)
+- [x] Create `tools/read_file.py` (read file, return string, catch errors)
+- [x] Register read_file in registry
+- [x] Update agent loop to handle `tool_calls`
+- [x] `uv run python -m agent "read fizzbuzz.js"` calls tool + summarizes (needs API key)
+- [x] Commit: `v2: tool registry with read_file`
 
 ## v3: Multiple tools + safety
 
