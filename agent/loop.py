@@ -1,6 +1,7 @@
 """Agent loop. Orchestrates LLM calls and tool execution."""
 
 import json
+import uuid
 
 import openai
 import typer
@@ -9,7 +10,18 @@ from agent.config import API_KEY, BASE_URL, MAX_ITERATIONS, MODEL, validate
 from tools.registry import TOOLS, execute_tool
 
 validate()
-client = openai.OpenAI(base_url=BASE_URL, api_key=API_KEY)
+
+# OpenCode Go requires x-opencode-session header for routing.
+_session_id = str(uuid.uuid4())
+
+client = openai.OpenAI(
+    base_url=BASE_URL,
+    api_key=API_KEY,
+    default_headers={
+        "x-opencode-session": _session_id,
+        "User-Agent": "pyagent/0.1",
+    },
+)
 
 
 def run(prompt: str, verbose: bool = False):
@@ -26,7 +38,7 @@ def run(prompt: str, verbose: bool = False):
             tools=TOOLS if TOOLS else None,
         )
         msg = response.choices[0].message
-        messages.append(msg.model_dump())
+        messages.append(msg.model_dump(exclude_none=True))
 
         # No tool calls = agent is done
         if not msg.tool_calls:

@@ -1,8 +1,11 @@
 """Tool registry. Maps tool names to their schemas and functions."""
 
+
+from tools.bash import BashInput, bash
+from tools.edit_file import EditFileInput, edit_file
+from tools.list_files import ListFilesInput, list_files
 from tools.read_file import ReadFileInput, read_file
 
-# Registry: list of OpenAI-compatible tool definitions
 TOOLS = [
     {
         "type": "function",
@@ -12,11 +15,37 @@ TOOLS = [
             "parameters": ReadFileInput.model_json_schema(),
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_files",
+            "description": "List files and directories at the given path.",
+            "parameters": ListFilesInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "bash",
+            "description": "Run a shell command and return its output. Has a timeout.",
+            "parameters": BashInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_file",
+            "description": "Write content to a file. Creates or overwrites the file.",
+            "parameters": EditFileInput.model_json_schema(),
+        },
+    },
 ]
 
-# Function dispatch: name -> callable
 TOOL_FUNCTIONS = {
     "read_file": read_file,
+    "list_files": list_files,
+    "bash": bash,
+    "edit_file": edit_file,
 }
 
 
