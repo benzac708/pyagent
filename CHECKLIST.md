@@ -61,13 +61,13 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v7: Deployment
 
-- [ ] Write `Dockerfile`
-- [ ] `docker build` succeeds
+- [x] Write `Dockerfile`
+- [ ] `docker build` succeeds (no docker socket access, file verified manually)
 - [ ] `docker run` works locally
-- [ ] Write `deploy/agent.service` + `deploy/agent.timer`
+- [x] Write `deploy/agent.service` + `deploy/agent.timer`
 - [ ] Deploy to VPS, `systemctl is-active` confirms running
 - [ ] Caddy serves HTTPS
-- [ ] Commit: `v7: Docker + systemd + Caddy deployment`
+- [x] Commit: `v7: Docker + systemd + Caddy deployment`
 
 ## v8: Polish
 
