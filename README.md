@@ -242,7 +242,7 @@ via structured JSON logs and a `/health` endpoint.
 1. `agent/loop.py` — the core agent loop (tool calls, max-iteration guard, persistence)
 2. `agent/providers.py` — provider failover chain
 3. `tools/registry.py` + any tool file — how tools are registered
-4. `tests/` — 34 tests covering tools, db, providers, loop, API, security
+4. `tests/` — 35 tests covering tools, db, providers, loop, API, security
 5. Run `MOCK_LLM=true uv run python -m agent "hello"` — works with no API key
 
 **Verify claims in 60 seconds:**
@@ -250,7 +250,7 @@ via structured JSON logs and a `/health` endpoint.
 git clone https://github.com/benzac708/pyagent && cd pyagent
 cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
 uv venv && uv sync --all-extras
-uv run pytest -v          # 34 tests, all green
+uv run pytest -v          # 35 tests, all green
 uv run ruff check .       # clean
 uv run python -m agent "read fizzbuzz.js"   # tool call demo
 curl http://localhost:8000/health  # after: uv run uvicorn api.server:app --port 8000

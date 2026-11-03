@@ -11,7 +11,7 @@ def test_root():
         assert r.status_code == 200
         body = r.json()
         assert body["name"] == "pyagent"
-        assert body["version"] == "0.6.0"
+        assert body["version"] == "0.7.0"
 
 
 def test_health_ok():

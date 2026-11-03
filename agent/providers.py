@@ -2,11 +2,12 @@
 
 import os
 import uuid
+from typing import Any, Optional
 
 import openai
 
 
-def _mock_response(messages, tools=None):
+def _mock_response(messages: list[Any], tools: Optional[list[Any]] = None) -> tuple[Any, str]:
     """Return a canned OpenAI-compatible response for demo/mock mode."""
     from types import SimpleNamespace
 
@@ -18,7 +19,7 @@ def _mock_response(messages, tools=None):
     )
     msg = SimpleNamespace(content=content, tool_calls=None)
 
-    def model_dump(exclude_none=True):
+    def model_dump(exclude_none: bool = True) -> dict[str, Any]:
         return {"role": "assistant", "content": content}
 
     msg.model_dump = model_dump
@@ -27,32 +28,33 @@ def _mock_response(messages, tools=None):
     return SimpleNamespace(choices=[choice], usage=usage), "mock"
 
 
-def create_client(base_url, api_key, session_id, user_agent="pyagent/0.1"):
+def create_client(base_url: str, api_key: str, session_id: str, user_agent: str = "pyagent/0.7.0") -> Any:
     """Create an OpenAI-compatible client with required headers."""
+    headers = {"User-Agent": user_agent}
+    # OpenCode Go requires a session header; don't leak it to other providers.
+    if "opencode" in (base_url or "").lower():
+        headers["x-opencode-session"] = session_id
     return openai.OpenAI(
         base_url=base_url,
         api_key=api_key,
-        default_headers={
-            "x-opencode-session": session_id,
-            "User-Agent": user_agent,
-        },
+        default_headers=headers,
     )
 
 
 class ProviderChain:
     """Tries providers in order. Falls back on any exception."""
 
-    def __init__(self, providers):
+    def __init__(self, providers: list[dict[str, Any]]) -> None:
         # providers: list of dicts with keys: base_url, api_key, model, name
         self.providers = providers
         self.session_id = str(uuid.uuid4())
-        self.last_provider = None
+        self.last_provider: Optional[str] = None
 
-    def chat(self, messages, tools=None):
+    def chat(self, messages: list[Any], tools: Optional[list[Any]] = None) -> tuple[Any, str]:
         if os.getenv("MOCK_LLM", "").lower() in ("1", "true", "yes"):
             self.last_provider = "mock"
             return _mock_response(messages, tools)
-        last_error = None
+        last_error: Optional[Exception] = None
         for p in self.providers:
             try:
                 client = create_client(p["base_url"], p["api_key"], self.session_id)
@@ -68,4 +70,6 @@ class ProviderChain:
                 print(f"[provider] {p['name']} failed: {e}")
                 print("[provider] trying next...")
                 continue
-        raise last_error
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("no providers configured")

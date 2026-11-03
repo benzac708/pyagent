@@ -4,6 +4,8 @@ import os
 
 from pydantic import BaseModel
 
+_MAX_BYTES = 1_000_000  # 1 MB cap to avoid memory/DoS blowups
+
 _BLOCKED_NAMES = {".env", ".env.local", ".env.production", ".env.development"}
 _BLOCKED_SUFFIXES = (".pem", ".key", ".p12", ".pfx", ".crt")
 _BLOCKED_SUBSTRINGS = ("secret", "credential", "private_key", "id_rsa", "id_ed25519")
@@ -29,6 +31,9 @@ def read_file(path: str) -> str:
     if _is_sensitive(path):
         return "Error: reading this file is not allowed (sensitive path)"
     try:
+        size = os.path.getsize(path)
+        if size > _MAX_BYTES:
+            return f"Error: file too large ({size} bytes, max {_MAX_BYTES})"
         with open(path, "r") as f:
             return f.read()
     except FileNotFoundError:

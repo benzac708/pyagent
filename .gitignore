@@ -6,3 +6,6 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 *.pyc
+
+.env.bak
+.env.*

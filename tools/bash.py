@@ -5,7 +5,10 @@ import subprocess
 
 from pydantic import BaseModel
 
-_SECRET_VALUES = [v for v in (os.getenv("API_KEY", ""), os.getenv("FALLBACK_API_KEY", "")) if v]
+_MAX_OUTPUT = 50_000  # cap output to avoid context/log flooding
+
+# Redact every non-trivial environment value, not just the two API keys.
+_SECRET_VALUES = [v for v in os.environ.values() if v and len(v) >= 8]
 
 
 def _redact(text: str) -> str:
@@ -37,7 +40,10 @@ def bash(command: str, timeout: int = 30) -> str:
             output += "\n[stderr]\n" + result.stderr
         if result.returncode != 0:
             output += f"\n[exit code: {result.returncode}]"
-        return _redact(output.strip() or "(no output)")
+        result_text = _redact(output.strip() or "(no output)")
+        if len(result_text) > _MAX_OUTPUT:
+            result_text = result_text[:_MAX_OUTPUT] + f"\n... [truncated at {_MAX_OUTPUT} chars]"
+        return result_text
     except subprocess.TimeoutExpired:
         return f"Error: command timed out after {timeout}s"
     except Exception as e:

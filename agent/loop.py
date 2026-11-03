@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from typing import Any, Optional
 
 import typer
 
@@ -30,7 +31,7 @@ from tools.registry import TOOLS, execute_tool
 chain = None
 
 
-def get_chain():
+def get_chain() -> Any:
     """Lazily build (and cache) the provider chain."""
     global chain
     if chain is None:
@@ -50,7 +51,12 @@ def get_chain():
     return chain
 
 
-def _run_loop(messages, conv_id, verbose=False, quiet=False):
+def _run_loop(
+    messages: list[dict[str, Any]],
+    conv_id: str,
+    verbose: bool = False,
+    quiet: bool = False,
+) -> dict[str, Any]:
     """Shared execution loop used by run() and resume. Returns a result dict."""
     run_id = str(uuid.uuid4())[:8]
     iterations = 0
@@ -59,6 +65,7 @@ def _run_loop(messages, conv_id, verbose=False, quiet=False):
     error = None
     provider_name = None
     final_content = None
+    saved = False
 
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
 
@@ -108,7 +115,12 @@ def _run_loop(messages, conv_id, verbose=False, quiet=False):
         if not quiet:
             print(f"Error: {e}")
 
-    save_run(run_id, conv_id, provider_name, iterations, total_tokens, status, error)
+    if not saved:
+        try:
+            save_run(run_id, conv_id, provider_name, iterations, total_tokens, status, error)
+            saved = True
+        except Exception:
+            pass
 
     log.info(
         "run_finished",
@@ -138,22 +150,29 @@ def _run_loop(messages, conv_id, verbose=False, quiet=False):
     }
 
 
-def run(prompt: str, verbose: bool = False, conv_id: str = None, quiet: bool = False):
+def run(prompt: str, verbose: bool = False, conv_id: Optional[str] = None, quiet: bool = False) -> dict[str, Any]:
     """Run the agent with a single prompt. Returns a result dict."""
     if conv_id is None:
         conv_id = str(uuid.uuid4())[:8]
+    init_db()
     create_conversation(conv_id)
     save_message(conv_id, "user", content=prompt)
     messages = [{"role": "user", "content": prompt}]
     return _run_loop(messages, conv_id, verbose=verbose, quiet=quiet)
 
 
-def main(prompt: str, verbose: bool = False, resume: str = None, quiet: bool = False):
+def main(
+    prompt: str,
+    verbose: bool = False,
+    resume: Optional[str] = None,
+    quiet: bool = False,
+) -> Optional[dict[str, Any]]:
+    init_db()
     if resume:
         prev = get_conversation_messages(resume)
         if not prev:
             print(f"No conversation found: {resume}")
-            return
+            return None
         print(f"Resuming conversation {resume} ({len(prev)} messages)")
         save_message(resume, "user", content=prompt)
         messages = prev + [{"role": "user", "content": prompt}]

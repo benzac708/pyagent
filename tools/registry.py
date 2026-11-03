@@ -1,11 +1,13 @@
 """Tool registry. Maps tool names to their schemas and functions."""
 
+from typing import Any
+
 from tools.bash import BashInput, bash
 from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
 from tools.read_file import ReadFileInput, read_file
 
-TOOLS = [
+TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
@@ -40,7 +42,7 @@ TOOLS = [
     },
 ]
 
-TOOL_FUNCTIONS = {
+TOOL_FUNCTIONS: dict[str, Any] = {
     "read_file": read_file,
     "list_files": list_files,
     "bash": bash,
@@ -48,7 +50,7 @@ TOOL_FUNCTIONS = {
 }
 
 
-def execute_tool(name: str, arguments: dict) -> str:
+def execute_tool(name: str, arguments: dict[str, Any]) -> str:
     """Execute a tool by name. Returns a string result (never raises)."""
     func = TOOL_FUNCTIONS.get(name)
     if func is None:

@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timezone
+from typing import Any, Optional
 
 from agent.config import DB_PATH
 
@@ -23,7 +24,7 @@ def get_conn() -> sqlite3.Connection:
     return conn
 
 
-def init_db():
+def init_db() -> None:
     """Create tables if they don't exist."""
     conn = get_conn()
     conn.executescript("""
@@ -59,7 +60,7 @@ def init_db():
     conn.close()
 
 
-def create_conversation(conv_id: str):
+def create_conversation(conv_id: str) -> None:
     now = datetime.now(timezone.utc).isoformat()
     conn = get_conn()
     conn.execute(
@@ -70,7 +71,13 @@ def create_conversation(conv_id: str):
     conn.close()
 
 
-def save_message(conv_id: str, role: str, content=None, tool_calls=None, tool_call_id=None):
+def save_message(
+    conv_id: str,
+    role: str,
+    content: Optional[str] = None,
+    tool_calls: Optional[list[Any]] = None,
+    tool_call_id: Optional[str] = None,
+) -> None:
     now = datetime.now(timezone.utc).isoformat()
     conn = get_conn()
     conn.execute(
@@ -82,7 +89,15 @@ def save_message(conv_id: str, role: str, content=None, tool_calls=None, tool_ca
     conn.close()
 
 
-def save_run(run_id, conv_id, provider, iterations, total_tokens, status, error=None):
+def save_run(
+    run_id: str,
+    conv_id: str,
+    provider: Optional[str],
+    iterations: int,
+    total_tokens: int,
+    status: str,
+    error: Optional[str] = None,
+) -> None:
     now = datetime.now(timezone.utc).isoformat()
     conn = get_conn()
     conn.execute(
@@ -94,7 +109,7 @@ def save_run(run_id, conv_id, provider, iterations, total_tokens, status, error=
     conn.close()
 
 
-def get_conversation_messages(conv_id: str) -> list[dict]:
+def get_conversation_messages(conv_id: str) -> list[dict[str, Any]]:
     conn = get_conn()
     rows = conn.execute(
         "SELECT role, content, tool_calls, tool_call_id FROM messages WHERE conv_id = ? ORDER BY id",
@@ -114,12 +129,22 @@ def get_conversation_messages(conv_id: str) -> list[dict]:
     return result
 
 
-def list_runs(limit=10):
+def list_conversations(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, created_at, updated_at FROM conversations ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+        (limit, offset),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def list_runs(limit: int = 10, offset: int = 0) -> list[dict[str, Any]]:
     conn = get_conn()
     rows = conn.execute(
         "SELECT id, conv_id, provider, iterations, total_tokens, status, started_at "
-        "FROM runs ORDER BY started_at DESC LIMIT ?",
-        (limit,),
+        "FROM runs ORDER BY started_at DESC LIMIT ? OFFSET ?",
+        (limit, offset),
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]

@@ -3,6 +3,7 @@
 import logging
 import os
 import stat
+from typing import Any
 
 import structlog
 from dotenv import load_dotenv
@@ -37,7 +38,7 @@ def _is_secret_key(name: str) -> bool:
     return False
 
 
-def _redact_processor(logger, method_name, event_dict):
+def _redact_processor(logger: Any, method_name: str, event_dict: Any) -> Any:
     """Redact values of any key whose name looks like a secret."""
     for key in list(event_dict.keys()):
         if _is_secret_key(key):
@@ -51,7 +52,7 @@ def _redact_processor(logger, method_name, event_dict):
     return event_dict
 
 
-def _check_env_perms():
+def _check_env_perms() -> None:
     """Warn if .env is world-readable."""
     for path in (".env",):
         try:
@@ -95,11 +96,11 @@ DB_PATH = os.getenv("DB_PATH", "agent.db")
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "10"))
 
 
-def is_mock_mode():
+def is_mock_mode() -> bool:
     return os.getenv("MOCK_LLM", "").lower() in ("1", "true", "yes")
 
 
-def validate():
+def validate() -> None:
     if is_mock_mode():
         return
     if not API_KEY:
@@ -108,11 +109,11 @@ def validate():
         raise ValueError("BASE_URL not set.")
 
 
-def has_fallback():
+def has_fallback() -> bool:
     return bool(FALLBACK_BASE_URL and FALLBACK_API_KEY and FALLBACK_MODEL)
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     """Dynamic module attributes for mock mode."""
     if name in ("MOCK_LLM", "MOCK_MODE", "mock_mode"):
         return is_mock_mode()
