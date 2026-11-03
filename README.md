@@ -10,6 +10,7 @@ Minimal Python AI agent: tool calling, provider failover, SQLite state, structur
 git clone https://github.com/benzac708/pyagent && cd pyagent
 cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
 uv venv && uv sync --all-extras
+uv run pre-commit install                            # one-time, enables git hooks
 uv run python -m agent "hello, what can you do?"          # mock mode, no API key
 uv run python -m agent "read fizzbuzz.js"                 # tool call demo
 uv run pytest -v && uv run ruff check . && uv run mypy agent/ tools/ api/
