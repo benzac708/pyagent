@@ -82,9 +82,9 @@ sudo systemctl enable --now pyagent-digest.timer         # daily digest at 07:00
 
 Runtime: non-root container user, secrets via `env_file` (not mounted), SQLite in `./data/`, structured JSON logs to journald.
 
-## Security (best effort, not a sandbox)
+## Security
 
-Secrets never in git (gitleaks), never in Docker image (.dockerignore), not readable as files (denylist + redaction), redacted in logs. `bash` runs arbitrary shell — trusted-user-only. See `tests/test_security.py`.
+Secrets: gitignored + gitleaks, not in Docker image (.dockerignore), unreadable via tools (denylist + redaction), redacted in logs. `bash` runs arbitrary shell — trusted-user-only. See `tests/test_security.py`.
 
 ## License
 
