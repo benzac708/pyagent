@@ -58,7 +58,7 @@ Runtime: non-root container user, secrets via `env_file`, SQLite in `./data/`, J
 
 ## Security
 
-Secrets: gitignored + gitleaks, not in Docker image (.dockerignore), unreadable via tools (denylist + redaction), redacted in logs. `bash` runs arbitrary shell — trusted-user-only. See `tests/test_security.py`.
+Secrets: gitignored + gitleaks, not in Docker image (.dockerignore), unreadable via tools (denylist + redaction), redacted in logs. `bash` runs arbitrary shell - trusted-user-only. See `tests/test_security.py`.
 
 ## License
 

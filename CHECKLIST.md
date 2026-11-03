@@ -1,4 +1,4 @@
-# pyagent — Build Checklist
+# pyagent - Build Checklist
 
 Cross off each step as you complete it. Each version is one git commit.
 
