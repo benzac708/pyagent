@@ -1,0 +1,12 @@
+[Unit]
+Description=Run pyagent daily digest at 7am
+Requires=pyagent-digest.service
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+Persistent=true
+Unit=pyagent-digest.service
+
+[Install]
+WantedBy=timers.target
+

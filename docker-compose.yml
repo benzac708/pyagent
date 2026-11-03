@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  pyagent:
+    build: .
+    container_name: pyagent
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    environment:
+      - DB_PATH=/app/data/agent.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+

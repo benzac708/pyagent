@@ -1,0 +1,13 @@
+[Unit]
+Description=pyagent daily digest (example)
+After=pyagent.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/pyagent
+ExecStart=/usr/bin/docker compose exec -T pyagent uv run python -m agent "generate daily digest" --verbose
+EnvironmentFile=/opt/pyagent/.env
+
+[Install]
+WantedBy=multi-user.target
+

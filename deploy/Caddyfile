@@ -1,0 +1,7 @@
+# Caddy reverse proxy config
+# Replace agent.yourdomain.com with your actual domain
+
+agent.yourdomain.com {
+    reverse_proxy localhost:8000
+}
+

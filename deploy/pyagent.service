@@ -1,0 +1,17 @@
+[Unit]
+Description=pyagent API server
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+WorkingDirectory=/opt/pyagent
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
+EnvironmentFile=/opt/pyagent/.env
+
+[Install]
+WantedBy=multi-user.target
+
