@@ -6,9 +6,14 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from agent.config import DB_PATH
-from agent.db import get_conn
+from agent.db import get_conn, init_db
 
 app = FastAPI(title="pyagent", version="0.6.0")
+
+
+@app.on_event("startup")
+def _init_database():
+    init_db()
 
 
 @app.get("/health")
