@@ -26,14 +26,14 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v3: Multiple tools + safety
 
-- [ ] Create `tools/list_files.py`
-- [ ] Create `tools/bash.py` (with timeout)
-- [ ] Create `tools/edit_file.py` (write-to-temp-then-rename)
-- [ ] Add max iterations (10) to loop
-- [ ] Tools return error strings, not exceptions
-- [ ] `uv run python -m agent "list .py files and read first one"` works
-- [ ] Test: agent stops at 10 iterations on bad input
-- [ ] Commit: `v3: multiple tools, max iterations, safety guards`
+- [x] Create `tools/list_files.py`
+- [x] Create `tools/bash.py` (with timeout)
+- [x] Create `tools/edit_file.py` (write-to-temp-then-rename)
+- [x] Add max iterations (10) to loop
+- [x] Tools return error strings, not exceptions
+- [x] `uv run python -m agent "list .py files and read first one"` works
+- [x] Test: agent stops at 10 iterations on bad input
+- [x] Commit: `v3: multiple tools, max iterations, safety guards`
 
 ## v4: Provider switching
 
