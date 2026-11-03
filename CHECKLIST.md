@@ -71,13 +71,13 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v8: Polish
 
-- [ ] Write `tests/test_tools.py` (test each tool)
-- [ ] Write `tests/test_config.py`
-- [ ] `uv run pytest` passes
-- [ ] Create `.github/workflows/ci.yml`
-- [ ] GitHub Actions green
-- [ ] README with architecture diagram + "why" sections
-- [ ] Commit: `v8: tests, CI, documentation`
+- [x] Write `tests/test_tools.py` (test each tool)
+- [x] Write `tests/test_config.py`
+- [x] `uv run pytest` passes
+- [x] Create `.github/workflows/ci.yml`
+- [x] GitHub Actions green
+- [x] README with architecture diagram + "why" sections
+- [x] Commit: `v8: tests, CI, documentation`
 
 ---
 
