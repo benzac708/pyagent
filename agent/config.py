@@ -1,10 +1,25 @@
 """Configuration loader. Reads .env and validates required vars."""
 
+import logging
 import os
 
+import structlog
 from dotenv import load_dotenv
 
 load_dotenv()
+
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.add_log_level,
+        structlog.processors.JSONRenderer(),
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(
+        getattr(logging, os.getenv("LOG_LEVEL", "info").upper(), logging.INFO)
+    ),
+)
+
+log = structlog.get_logger()
 
 # Primary provider
 BASE_URL = os.getenv("BASE_URL", "https://api.openai.com/v1")

@@ -14,6 +14,7 @@ from agent.config import (
     MAX_ITERATIONS,
     MODEL,
     has_fallback,
+    log,
     validate,
 )
 from agent.db import (
@@ -59,6 +60,8 @@ def run(prompt: str, verbose: bool = False, conv_id: str = None):
     status = "completed"
     error = None
     provider_name = None
+
+    log.info("run_started", conv_id=conv_id, prompt=prompt[:100])
 
     try:
         for iteration in range(MAX_ITERATIONS):
@@ -115,6 +118,16 @@ def run(prompt: str, verbose: bool = False, conv_id: str = None):
 
     save_run(run_id, conv_id, provider_name, iterations, total_tokens, status, error)
 
+    log.info(
+        "run_finished",
+        run_id=run_id,
+        conv_id=conv_id,
+        provider=provider_name,
+        iterations=iterations,
+        total_tokens=total_tokens,
+        status=status,
+    )
+
     if verbose:
         print(
             f"\n[run] id={run_id} conv={conv_id} provider={provider_name} "
@@ -129,10 +142,9 @@ def main(prompt: str, verbose: bool = False, resume: str = None):
             print(f"No conversation found: {resume}")
             return
         print(f"Resuming conversation {resume} ({len(prev)} messages)")
-        # Append new prompt and run with existing conv_id
         save_message(resume, "user", content=prompt)
         messages = prev + [{"role": "user", "content": prompt}]
-        # Run inline with existing messages
+
         run_id = str(uuid.uuid4())[:8]
         iterations = 0
         total_tokens = 0
@@ -174,6 +186,15 @@ def main(prompt: str, verbose: bool = False, resume: str = None):
             print(f"Error: {e}")
 
         save_run(run_id, resume, provider_name, iterations, total_tokens, status, error)
+        log.info(
+            "run_finished",
+            run_id=run_id,
+            conv_id=resume,
+            provider=provider_name,
+            iterations=iterations,
+            total_tokens=total_tokens,
+            status=status,
+        )
         if verbose:
             print(
                 f"\n[run] id={run_id} conv={resume} provider={provider_name} "
