@@ -7,6 +7,13 @@ from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
 from tools.read_file import ReadFileInput, read_file
 
+_INPUT_MODELS = {
+    "read_file": ReadFileInput,
+    "list_files": ListFilesInput,
+    "bash": BashInput,
+    "edit_file": EditFileInput,
+}
+
 TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
@@ -55,6 +62,13 @@ def execute_tool(name: str, arguments: dict[str, Any]) -> str:
     func = TOOL_FUNCTIONS.get(name)
     if func is None:
         return f"Error: unknown tool '{name}'"
+    model = _INPUT_MODELS.get(name)
+    if model is not None:
+        try:
+            validated = model(**arguments)
+            arguments = validated.model_dump()
+        except Exception as e:
+            return f"Error: invalid arguments: {e}"
     try:
         return str(func(**arguments))
     except Exception as e:

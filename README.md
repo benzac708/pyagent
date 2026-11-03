@@ -256,9 +256,10 @@ uv run python -m agent "read fizzbuzz.js"   # tool call demo
 curl http://localhost:8000/health  # after: uv run uvicorn api.server:app --port 8000
 ```
 
-**Security posture:** secrets are never in git (gitleaks), never in the Docker image
-(.dockerignore), never readable by agent tools (denylist + redaction), and never in
-logs (structlog redaction). See `tests/test_security.py`.
+**Security posture (best effort, not a sandbox):** secrets are never in git (gitleaks),
+never in the Docker image (.dockerignore), not readable as files (sensitive-path denylist),
+redacted in tool output and logs. The `bash` tool runs arbitrary shell — treat pyagent as
+trusted-user-only; it is not a sandbox. See `tests/test_security.py`.
 
 ## License
 

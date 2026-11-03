@@ -99,7 +99,13 @@ def _run_loop(
             for tc in msg.tool_calls:
                 if verbose:
                     print(f"  tool: {tc.function.name}({tc.function.arguments})")
-                args = json.loads(tc.function.arguments)
+                try:
+                    args = json.loads(tc.function.arguments or "{}")
+                except (json.JSONDecodeError, TypeError) as e:
+                    result = f"Error: invalid tool arguments: {e}"
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+                    save_message(conv_id, "tool", content=result, tool_call_id=tc.id)
+                    continue
                 result = execute_tool(tc.function.name, args)
                 if verbose:
                     print(f"  result: {result[:200]}")

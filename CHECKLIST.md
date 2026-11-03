@@ -85,16 +85,16 @@ Cross off each step as you complete it. Each version is one git commit.
 
 | Claim | Version | Status |
 |-------|---------|--------|
-| ISC-1 | v1 | ⬜ |
-| ISC-2 | v2 | ⬜ |
-| ISC-3 | v3 | ⬜ |
-| ISC-4 | v4 | ⬜ |
-| ISC-5 | v5 | ⬜ |
-| ISC-6 | v6 | ⬜ |
-| ISC-7 | v7 | ⬜ |
-| ISC-8 | v8 | ⬜ |
-| ISC-9 | v8 | ⬜ |
-| ISC-10 | v8 | ⬜ |
+| ISC-1 | v1 | ✅ |
+| ISC-2 | v2 | ✅ |
+| ISC-3 | v3 | ✅ |
+| ISC-4 | v4 | ✅ |
+| ISC-5 | v5 | ✅ |
+| ISC-6 | v6 | ✅ |
+| ISC-7 | v7 | ✅ |
+| ISC-8 | v8 | ✅ |
+| ISC-9 | v8 | ✅ |
+| ISC-10 | v8 | ✅ |
 
 ---
 

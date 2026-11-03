@@ -43,12 +43,14 @@ def _redact_processor(logger: Any, method_name: str, event_dict: Any) -> Any:
     for key in list(event_dict.keys()):
         if _is_secret_key(key):
             event_dict[key] = "[REDACTED]"
-    # Redact secret-like substrings in string values (defence in depth).
+    # Redact any env value (length >= 8) appearing in string values (defence in depth).
+    secrets = [v for v in os.environ.values() if v and len(v) >= 8]
     for key, value in list(event_dict.items()):
         if isinstance(value, str):
-            for secret in (os.getenv("API_KEY", ""), os.getenv("FALLBACK_API_KEY", "")):
-                if secret and secret in value:
-                    event_dict[key] = value.replace(secret, "[REDACTED]")
+            for secret in secrets:
+                if secret in value:
+                    value = value.replace(secret, "[REDACTED]")
+            event_dict[key] = value
     return event_dict
 
 
