@@ -5,7 +5,7 @@ After=pyagent.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/pyagent
-ExecStart=/usr/bin/docker compose exec -T pyagent uv run python -m agent "generate daily digest"
+ExecStart=/usr/bin/docker compose exec -T pyagent uv run python -m agent "read README.md and summarize the project status in 5 bullets"
 EnvironmentFile=/opt/pyagent/.env
 
 [Install]
