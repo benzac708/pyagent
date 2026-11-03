@@ -1,8 +1,30 @@
 """Provider failover. Tries primary, falls back on failure."""
 
+import os
 import uuid
 
 import openai
+
+
+def _mock_response(messages, tools=None):
+    """Return a canned OpenAI-compatible response for demo/mock mode."""
+    from types import SimpleNamespace
+
+    last = messages[-1] if messages else {}
+    content = (
+        "This is a mock response (MOCK_LLM=true). "
+        "In real mode I would call the LLM and any tools needed. "
+        f"You said: {str(last.get('content', ''))[:120]}"
+    )
+    msg = SimpleNamespace(content=content, tool_calls=None)
+
+    def model_dump(exclude_none=True):
+        return {"role": "assistant", "content": content}
+
+    msg.model_dump = model_dump
+    choice = SimpleNamespace(message=msg)
+    usage = SimpleNamespace(total_tokens=42)
+    return SimpleNamespace(choices=[choice], usage=usage), "mock"
 
 
 def create_client(base_url, api_key, session_id, user_agent="pyagent/0.1"):
@@ -27,6 +49,9 @@ class ProviderChain:
         self.last_provider = None
 
     def chat(self, messages, tools=None):
+        if os.getenv("MOCK_LLM", "").lower() in ("1", "true", "yes"):
+            self.last_provider = "mock"
+            return _mock_response(messages, tools)
         last_error = None
         for p in self.providers:
             try:

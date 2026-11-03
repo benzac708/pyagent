@@ -28,10 +28,12 @@ def test_fallback_on_primary_failure():
         ok.chat.completions.create.return_value = make_response(content="ok", total_tokens=3)
         mock_create.side_effect = [failing, ok]
 
-        chain = ProviderChain([
-            {"base_url": "u1", "api_key": "k1", "model": "m1", "name": "primary"},
-            {"base_url": "u2", "api_key": "k2", "model": "m2", "name": "fallback"},
-        ])
+        chain = ProviderChain(
+            [
+                {"base_url": "u1", "api_key": "k1", "model": "m1", "name": "primary"},
+                {"base_url": "u2", "api_key": "k2", "model": "m2", "name": "fallback"},
+            ]
+        )
         resp, name = chain.chat([{"role": "user", "content": "hi"}])
 
         assert name == "fallback"
@@ -46,10 +48,12 @@ def test_all_providers_fail_raises():
         c2.chat.completions.create.side_effect = RuntimeError("e2")
         mock_create.side_effect = [c1, c2]
 
-        chain = ProviderChain([
-            {"base_url": "u1", "api_key": "k1", "model": "m1", "name": "p1"},
-            {"base_url": "u2", "api_key": "k2", "model": "m2", "name": "p2"},
-        ])
+        chain = ProviderChain(
+            [
+                {"base_url": "u1", "api_key": "k1", "model": "m1", "name": "p1"},
+                {"base_url": "u2", "api_key": "k2", "model": "m2", "name": "p2"},
+            ]
+        )
         try:
             chain.chat([{"role": "user", "content": "hi"}])
             raised = False

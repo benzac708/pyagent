@@ -39,9 +39,10 @@ def test_loop_with_real_read_file_tool(tmp_db, monkeypatch):
 
     conn = sqlite3.connect(tmp_db)
     conv_id = conn.execute("SELECT conv_id FROM runs ORDER BY started_at DESC LIMIT 1").fetchone()[0]
-    tool_msgs = [r[0] for r in conn.execute(
-        "SELECT content FROM messages WHERE conv_id=? AND role='tool'", (conv_id,)
-    ).fetchall()]
+    tool_msgs = [
+        r[0]
+        for r in conn.execute("SELECT content FROM messages WHERE conv_id=? AND role='tool'", (conv_id,)).fetchall()
+    ]
     conn.close()
 
     assert any("fizzbuzz" in (m or "") for m in tool_msgs)
@@ -60,10 +61,12 @@ def test_loop_failover_integration(tmp_db, monkeypatch):
 
     with patch("agent.providers.create_client") as mock_create:
         mock_create.side_effect = [failing_client, ok_client]
-        chain = ProviderChain([
-            {"base_url": "u1", "api_key": "k1", "model": "m1", "name": "primary"},
-            {"base_url": "u2", "api_key": "k2", "model": "m2", "name": "fallback"},
-        ])
+        chain = ProviderChain(
+            [
+                {"base_url": "u1", "api_key": "k1", "model": "m1", "name": "primary"},
+                {"base_url": "u2", "api_key": "k2", "model": "m2", "name": "fallback"},
+            ]
+        )
         monkeypatch.setattr("agent.loop.chain", chain)
         loop.run("hi")
 

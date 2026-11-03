@@ -1,6 +1,7 @@
 """SQLite state: conversations, messages, run traces."""
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 
@@ -8,8 +9,17 @@ from agent.config import DB_PATH
 
 
 def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    parent = os.path.dirname(os.path.abspath(DB_PATH))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    # WAL mode for better concurrency; busy_timeout for lock contention.
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
+    except sqlite3.Error:
+        pass
     return conn
 
 

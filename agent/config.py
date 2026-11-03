@@ -10,8 +10,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Exact key names that hold secrets (lowercased).
-_SECRET_KEY_NAMES = {"api_key", "apikey", "secret", "password", "passwd", "auth_token",
-                     "access_token", "refresh_token", "private_key"}
+_SECRET_KEY_NAMES = {
+    "api_key",
+    "apikey",
+    "secret",
+    "password",
+    "passwd",
+    "auth_token",
+    "access_token",
+    "refresh_token",
+    "private_key",
+}
 # Key-name suffixes that indicate a secret value.
 _SECRET_SUFFIXES = ("_key", "_secret", "_password", "_passwd", "_token", "_private_key")
 
@@ -86,7 +95,13 @@ DB_PATH = os.getenv("DB_PATH", "agent.db")
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "10"))
 
 
+def is_mock_mode():
+    return os.getenv("MOCK_LLM", "").lower() in ("1", "true", "yes")
+
+
 def validate():
+    if is_mock_mode():
+        return
     if not API_KEY:
         raise ValueError("API_KEY not set. Copy .env.example to .env and add your key.")
     if not BASE_URL:
@@ -95,3 +110,10 @@ def validate():
 
 def has_fallback():
     return bool(FALLBACK_BASE_URL and FALLBACK_API_KEY and FALLBACK_MODEL)
+
+
+def __getattr__(name):
+    """Dynamic module attributes for mock mode."""
+    if name in ("MOCK_LLM", "MOCK_MODE", "mock_mode"):
+        return is_mock_mode()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

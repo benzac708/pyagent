@@ -1,6 +1,5 @@
 """Tests for SQLite persistence layer."""
 
-
 import pytest
 
 from agent import db
@@ -19,9 +18,7 @@ def test_init_creates_tables(tmp_db):
     import sqlite3
 
     conn = sqlite3.connect(tmp_db)
-    tables = {r[0] for r in conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()}
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
     conn.close()
     assert {"conversations", "messages", "runs"} <= tables
 
