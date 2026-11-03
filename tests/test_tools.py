@@ -58,4 +58,3 @@ def test_edit_file_overwrite(tmp_path):
     edit_file(path, "first")
     edit_file(path, "second")
     assert open(path).read() == "second"
-
