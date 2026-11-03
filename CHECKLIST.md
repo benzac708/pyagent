@@ -53,11 +53,11 @@ Cross off each step as you complete it. Each version is one git commit.
 
 ## v6: Observability
 
-- [ ] Add structlog (JSON output)
-- [ ] Track tokens per run in DB
-- [ ] Create `api/server.py` (FastAPI with /health)
-- [ ] `/health` returns `{"status": "ok"}`
-- [ ] Commit: `v6: structured logging, cost tracking, health endpoint`
+- [x] Add structlog (JSON output)
+- [x] Track tokens per run in DB
+- [x] Create `api/server.py` (FastAPI with /health)
+- [x] `/health` returns `{"status": "ok"}`
+- [x] Commit: `v6: structured logging, cost tracking, health endpoint`
 
 ## v7: Deployment
 
