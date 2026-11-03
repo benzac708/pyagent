@@ -25,7 +25,10 @@ git clone https://github.com/benzac708/pyagent && cd pyagent
 cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
 uv venv && uv sync --all-extras
 uv run python -m agent "hello, what can you do?"
+uv run python -m agent "read fizzbuzz.js"   # tool call demo
 uv run pytest -v          # 35 tests, all green
+uv run ruff check .       # clean
+uv run mypy agent/ tools/ api/   # strict, 0 errors
 ```
 
 With `MOCK_LLM=true` the agent returns canned responses so you can explore the CLI, tool registry, SQLite state, and FastAPI endpoints without any API key.
@@ -79,22 +82,9 @@ sudo systemctl enable --now pyagent-digest.timer         # daily digest at 07:00
 
 Runtime: non-root container user, secrets via `env_file` (not mounted), SQLite in `./data/`, structured JSON logs to journald.
 
-## For reviewers
+## Security (best effort, not a sandbox)
 
-**Problem:** LLMs are stateless and tool-less. pyagent wraps an OpenAI-compatible LLM in a loop that calls tools, remembers conversations in SQLite, and fails over between providers.
-
-**Verify in 60 seconds:**
-```bash
-git clone https://github.com/benzac708/pyagent && cd pyagent
-cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
-uv venv && uv sync --all-extras
-uv run pytest -v          # 35 tests, all green
-uv run ruff check .       # clean
-uv run mypy agent/ tools/ api/   # strict, 0 errors
-uv run python -m agent "read fizzbuzz.js"   # tool call demo
-```
-
-**Security (best effort, not a sandbox):** secrets never in git (gitleaks), never in Docker image (.dockerignore), not readable as files (denylist + redaction), redacted in logs. `bash` runs arbitrary shell — trusted-user-only. See `tests/test_security.py`.
+Secrets never in git (gitleaks), never in Docker image (.dockerignore), not readable as files (denylist + redaction), redacted in logs. `bash` runs arbitrary shell — trusted-user-only. See `tests/test_security.py`.
 
 ## License
 
