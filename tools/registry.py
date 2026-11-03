@@ -1,6 +1,5 @@
 """Tool registry. Maps tool names to their schemas and functions."""
 
-
 from tools.bash import BashInput, bash
 from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files

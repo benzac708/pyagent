@@ -1,27 +1,38 @@
 """Agent loop. Orchestrates LLM calls and tool execution."""
 
 import json
-import uuid
 
-import openai
 import typer
 
-from agent.config import API_KEY, BASE_URL, MAX_ITERATIONS, MODEL, validate
+from agent.config import (
+    API_KEY,
+    BASE_URL,
+    FALLBACK_API_KEY,
+    FALLBACK_BASE_URL,
+    FALLBACK_MODEL,
+    MAX_ITERATIONS,
+    MODEL,
+    has_fallback,
+    validate,
+)
+from agent.providers import ProviderChain
 from tools.registry import TOOLS, execute_tool
 
 validate()
 
-# OpenCode Go requires x-opencode-session header for routing.
-_session_id = str(uuid.uuid4())
+# Build provider list: primary + optional fallback
+providers = [{"base_url": BASE_URL, "api_key": API_KEY, "model": MODEL, "name": "primary"}]
+if has_fallback():
+    providers.append(
+        {
+            "base_url": FALLBACK_BASE_URL,
+            "api_key": FALLBACK_API_KEY,
+            "model": FALLBACK_MODEL,
+            "name": "fallback (groq)",
+        }
+    )
 
-client = openai.OpenAI(
-    base_url=BASE_URL,
-    api_key=API_KEY,
-    default_headers={
-        "x-opencode-session": _session_id,
-        "User-Agent": "pyagent/0.1",
-    },
-)
+chain = ProviderChain(providers)
 
 
 def run(prompt: str, verbose: bool = False):
@@ -32,13 +43,12 @@ def run(prompt: str, verbose: bool = False):
         if verbose:
             print(f"[iteration {iteration + 1}]")
 
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            tools=TOOLS if TOOLS else None,
-        )
+        response, provider_name = chain.chat(messages, TOOLS)
         msg = response.choices[0].message
         messages.append(msg.model_dump(exclude_none=True))
+
+        if verbose:
+            print(f"  provider: {provider_name}")
 
         # No tool calls = agent is done
         if not msg.tool_calls:
