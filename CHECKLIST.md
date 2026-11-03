@@ -1,0 +1,106 @@
+# pyagent — Build Checklist
+
+Cross off each step as you complete it. Each version is one git commit.
+
+---
+
+## v1: Core LLM call
+
+- [ ] Create repo + `git init`
+- [ ] Install `uv`, create venv
+- [ ] Create `pyproject.toml` with deps + ruff + pytest config
+- [ ] Create `.env.example` and `.gitignore`
+- [ ] Write `agent/config.py` (load .env, validate required vars)
+- [ ] Write `agent/loop.py` (single LLM call, print response)
+- [ ] `uv run python -m agent "hello"` works
+- [ ] Commit: `v1: core LLM call with OpenAI-compatible API`
+
+## v2: Tool registry + read_file
+
+- [ ] Create `tools/registry.py` (list of tool dicts)
+- [ ] Create `tools/read_file.py` (read file, return string, catch errors)
+- [ ] Register read_file in registry
+- [ ] Update agent loop to handle `tool_calls`
+- [ ] `uv run python -m agent "read fizzbuzz.js"` calls tool + summarizes
+- [ ] Commit: `v2: tool registry with read_file`
+
+## v3: Multiple tools + safety
+
+- [ ] Create `tools/list_files.py`
+- [ ] Create `tools/bash.py` (with timeout)
+- [ ] Create `tools/edit_file.py` (write-to-temp-then-rename)
+- [ ] Add max iterations (10) to loop
+- [ ] Tools return error strings, not exceptions
+- [ ] `uv run python -m agent "list .py files and read first one"` works
+- [ ] Test: agent stops at 10 iterations on bad input
+- [ ] Commit: `v3: multiple tools, max iterations, safety guards`
+
+## v4: Provider switching
+
+- [ ] Test with OpenAI (change .env)
+- [ ] Test with Ollama (change .env)
+- [ ] Document tested providers in README
+- [ ] Commit: `v4: verified with multiple providers`
+
+## v5: SQLite state
+
+- [ ] Create `agent/db.py` (init, save message, save run)
+- [ ] Store full conversation thread
+- [ ] Store run metadata (iterations, tokens, status, error)
+- [ ] Agent resumes conversation after restart
+- [ ] `sqlite3 agent.db "SELECT * FROM runs"` shows data
+- [ ] Commit: `v5: SQLite state + run traces`
+
+## v6: Observability
+
+- [ ] Add structlog (JSON output)
+- [ ] Track tokens per run in DB
+- [ ] Create `api/server.py` (FastAPI with /health)
+- [ ] `/health` returns `{"status": "ok"}`
+- [ ] Commit: `v6: structured logging, cost tracking, health endpoint`
+
+## v7: Deployment
+
+- [ ] Write `Dockerfile`
+- [ ] `docker build` succeeds
+- [ ] `docker run` works locally
+- [ ] Write `deploy/agent.service` + `deploy/agent.timer`
+- [ ] Deploy to VPS, `systemctl is-active` confirms running
+- [ ] Caddy serves HTTPS
+- [ ] Commit: `v7: Docker + systemd + Caddy deployment`
+
+## v8: Polish
+
+- [ ] Write `tests/test_tools.py` (test each tool)
+- [ ] Write `tests/test_config.py`
+- [ ] `uv run pytest` passes
+- [ ] Create `.github/workflows/ci.yml`
+- [ ] GitHub Actions green
+- [ ] README with architecture diagram + "why" sections
+- [ ] Commit: `v8: tests, CI, documentation`
+
+---
+
+## ISA Claims (map to versions)
+
+| Claim | Version | Status |
+|-------|---------|--------|
+| ISC-1 | v1 | ⬜ |
+| ISC-2 | v2 | ⬜ |
+| ISC-3 | v3 | ⬜ |
+| ISC-4 | v4 | ⬜ |
+| ISC-5 | v5 | ⬜ |
+| ISC-6 | v6 | ⬜ |
+| ISC-7 | v7 | ⬜ |
+| ISC-8 | v8 | ⬜ |
+| ISC-9 | v8 | ⬜ |
+| ISC-10 | v8 | ⬜ |
+
+---
+
+## Notes
+
+- Each version = one git commit. Git log tells the story.
+- Verify before moving on. Don't skip verification steps.
+- Stop anytime. Every version is a working, deployable thing.
+- v3 alone is a useful agent. Everything after is polish.
