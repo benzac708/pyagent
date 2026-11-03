@@ -87,15 +87,36 @@ One tool replaces three. One config. 100x faster (Rust). Less to maintain.
 ### pre-commit (not Husky)
 Python-native. Tool-agnostic (runs ruff, mypy, pytest, or any command). Same config works in CI.
 
-## Quick start
+## Live demo
+
+- **API:** https://pyagent.zachara.dev
+- **Health:** https://pyagent.zachara.dev/health
+- **Docs:** https://pyagent.zachara.dev/docs
+
+## Try it in 60 seconds (no API key needed)
 
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/pyagent
+git clone https://github.com/benzac708/pyagent
+cd pyagent
+cp .env.example .env
+# Enable mock mode (no API key required)
+sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
+uv venv && uv sync --all-extras
+uv run python -m agent "hello, what can you do?"
+uv run pytest -v
+```
+
+With `MOCK_LLM=true` the agent returns canned responses so you can explore the
+CLI, tool registry, SQLite state, and FastAPI endpoints without any API key.
+
+## Quick start (real LLM)
+
+```bash
+git clone https://github.com/benzac708/pyagent
 cd pyagent
 uv venv && uv sync --all-extras
 cp .env.example .env
-# Edit .env with your API key
+# Edit .env with your API key (Groq free tier works: https://console.groq.com)
 
 # Run
 uv run python -m agent "read fizzbuzz.js"
@@ -130,21 +151,46 @@ uv run pytest -v
 
 Switch providers by changing `.env` variables. No code changes needed.
 
-## Deployment
+## Deployment (production)
+
+Live at **https://pyagent.zachara.dev** (VPS: Oracle Cloud, Docker + Caddy + systemd).
 
 ```bash
 # Docker
 docker build -t pyagent .
 docker compose up -d
+curl http://localhost:8000/health
 
 # VPS (systemd)
 sudo cp deploy/pyagent.service /etc/systemd/system/
+sudo cp deploy/pyagent-digest.service /etc/systemd/system/
+sudo cp deploy/pyagent-digest.timer /etc/systemd/system/
+sudo systemctl daemon-reload
 sudo systemctl enable --now pyagent
+sudo systemctl enable --now pyagent-digest.timer   # daily digest at 07:00
 
-# HTTPS (Caddy)
-# Edit deploy/Caddyfile with your domain, then:
-caddy run --config deploy/Caddyfile
+# HTTPS (Caddy) — DNS-01 via Cloudflare
+# Add a site block for your domain, then:
+docker exec -e CADDY_ADMIN=127.0.0.1:9801 caddy caddy reload --config /etc/caddy/Caddyfile
 ```
+
+**Runtime details:**
+- Container runs as non-root user `agent` (uid 1000)
+- Secrets injected via `env_file` (not mounted as a file) — `.env` is absent from the container
+- SQLite DB persisted in `./data/` volume
+- Daily digest timer: 07:00 local, `Persistent=true` (catches up after reboot)
+- Logs: structured JSON via structlog → journald; no secrets logged
+
+## Monitoring & backup
+
+**Monitoring (optional):** a cron or healthchecks.io ping hitting `https://pyagent.zachara.dev/health`
+every 5 minutes. Alert on non-200 or `"status":"error"`.
+
+**Backup (optional):** `cp /opt/pyagent/data/agent.db /backup/agent-$(date +%F).db`
+via a daily cron. SQLite is a single file — `cp` is a consistent snapshot when
+the app is idle (or use `.backup` command for hot copies).
+
+Both are intentionally not wired into the core app; they're ops concerns.
 
 ## Project structure
 
@@ -170,13 +216,49 @@ pyagent/
 │   └── Caddyfile
 ├── tests/
 │   ├── test_tools.py
-│   └── test_config.py
+│   ├── test_config.py
+│   ├── test_db.py
+│   ├── test_providers.py
+│   ├── test_loop.py
+│   ├── test_api.py
+│   ├── test_integration.py
+│   ├── test_security.py
+│   └── helpers.py
 ├── Dockerfile
 ├── docker-compose.yml
 ├── pyproject.toml
 ├── .env.example
 └── CHECKLIST.md
 ```
+
+## For reviewers / recruiters
+
+**What problem does this solve?** LLMs are stateless and tool-less. pyagent wraps an
+OpenAI-compatible LLM in a loop that can call tools (read files, run bash, edit files),
+remembers conversations in SQLite, and fails over between providers — all observable
+via structured JSON logs and a `/health` endpoint.
+
+**What to look at (5 min):**
+1. `agent/loop.py` — the core agent loop (tool calls, max-iteration guard, persistence)
+2. `agent/providers.py` — provider failover chain
+3. `tools/registry.py` + any tool file — how tools are registered
+4. `tests/` — 34 tests covering tools, db, providers, loop, API, security
+5. Run `MOCK_LLM=true uv run python -m agent "hello"` — works with no API key
+
+**Verify claims in 60 seconds:**
+```bash
+git clone https://github.com/benzac708/pyagent && cd pyagent
+cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
+uv venv && uv sync --all-extras
+uv run pytest -v          # 34 tests, all green
+uv run ruff check .       # clean
+uv run python -m agent "read fizzbuzz.js"   # tool call demo
+curl http://localhost:8000/health  # after: uv run uvicorn api.server:app --port 8000
+```
+
+**Security posture:** secrets are never in git (gitleaks), never in the Docker image
+(.dockerignore), never readable by agent tools (denylist + redaction), and never in
+logs (structlog redaction). See `tests/test_security.py`.
 
 ## License
 
