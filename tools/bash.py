@@ -10,12 +10,19 @@ _MAX_OUTPUT = 50_000  # cap output to avoid context/log flooding
 # Redact every non-trivial environment value, not just the two API keys.
 _SECRET_VALUES = [v for v in os.environ.values() if v and len(v) >= 8]
 
+_BLOCKED = ("rm -rf /", "rm -rf /*", ":(){:|:&};:", "mkfs", "dd if=", "> /dev/sd", "shutdown", "reboot", "poweroff")
+
 
 def _redact(text: str) -> str:
     for secret in _SECRET_VALUES:
         if secret and secret in text:
             text = text.replace(secret, "[REDACTED]")
     return text
+
+
+def _is_blocked(command: str) -> bool:
+    low = command.lower()
+    return any(b in low for b in _BLOCKED)
 
 
 class BashInput(BaseModel):
@@ -27,6 +34,8 @@ def bash(command: str, timeout: int = 30) -> str:
     """Run a shell command. Returns stdout + stderr. Times out after `timeout`s."""
     if os.getenv("BASH_ENABLED", "true").lower() not in ("1", "true", "yes"):
         return "Error: bash tool is disabled (BASH_ENABLED=false)"
+    if _is_blocked(command):
+        return "Error: command blocked by safety filter"
     try:
         result = subprocess.run(
             command,
