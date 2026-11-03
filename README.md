@@ -4,6 +4,19 @@ Minimal Python AI agent: tool calling, provider failover, SQLite state, structur
 
 **Live demo:** https://pyagent.zachara.dev · [health](https://pyagent.zachara.dev/health) · [docs](https://pyagent.zachara.dev/docs)
 
+## Try it in 60 seconds
+
+```bash
+git clone https://github.com/benzac708/pyagent && cd pyagent
+cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
+uv venv && uv sync --all-extras
+uv run python -m agent "hello, what can you do?"          # mock mode, no API key
+uv run python -m agent "read fizzbuzz.js"                 # tool call demo
+uv run pytest -v && uv run ruff check . && uv run mypy agent/ tools/ api/
+```
+
+With `MOCK_LLM=true` the agent returns canned responses so you can explore the CLI, tool registry, SQLite state, and FastAPI endpoints without any API key. For a real LLM, set `API_KEY` in `.env` (Groq free tier works).
+
 ## Architecture
 
 ```mermaid
@@ -18,57 +31,18 @@ graph TB
     B --> I[structlog JSON]
 ```
 
-## Try it in 60 seconds (no API key)
-
-```bash
-git clone https://github.com/benzac708/pyagent && cd pyagent
-cp .env.example .env && sed -i 's/^MOCK_LLM=false/MOCK_LLM=true/' .env
-uv venv && uv sync --all-extras
-uv run python -m agent "hello, what can you do?"
-uv run python -m agent "read fizzbuzz.js"   # tool call demo
-uv run pytest -v          # 35 tests, all green
-uv run ruff check .       # clean
-uv run mypy agent/ tools/ api/   # strict, 0 errors
-```
-
-With `MOCK_LLM=true` the agent returns canned responses so you can explore the CLI, tool registry, SQLite state, and FastAPI endpoints without any API key.
-
-## Quick start (real LLM)
-
-```bash
-git clone https://github.com/benzac708/pyagent && cd pyagent
-uv venv && uv sync --all-extras
-cp .env.example .env      # add your API key (Groq free tier works)
-uv run python -m agent "read fizzbuzz.js"
-uv run python -m agent "read fizzbuzz.js" --verbose
-uv run python -m agent "what did I ask?" --resume <conv_id>
-uv run uvicorn api.server:app --port 8000 && curl http://localhost:8000/health
-```
-
 ## Key design decisions
 
 | Decision | Why |
 |----------|-----|
-| Python + OpenAI SDK | Best LLM SDK ecosystem; one client covers OpenAI, Azure, Ollama, Groq, OpenCode Go |
-| Tool registry pattern | Tools are name + JSON Schema + function; adding a tool = one file + one entry |
-| Tools return error strings | LLM can read "Error: file not found" and recover instead of crashing |
+| OpenAI SDK (not Anthropic) | One client covers OpenAI, Azure, Ollama, Groq, OpenCode Go |
+| Tool registry pattern | Adding a tool = one file + one registry entry, no loop changes |
+| Tools return error strings | LLM reads "Error: file not found" and recovers instead of crashing |
 | Max 10 iterations | Prevents infinite loops and runaway cost |
 | Provider failover | Free-tier APIs rate-limit; agent retries with Groq automatically |
-| SQLite (not Postgres) | Zero setup, built-in, single-file backup; enough for one user |
-| Raw SQL (not ORM) | 4 tables, simple queries; ORM earns its keep at 20+ tables |
+| SQLite (not Postgres) | Zero setup, single-file backup, enough for one user |
+| Raw SQL (not ORM) | 4 tables, simple queries |
 | structlog (JSON) | Greppable, aggregator-friendly; `/health` for monitoring |
-| FastAPI | Auto OpenAPI docs, health checks, async support |
-| Docker + systemd + Caddy | Reproducible env, auto-restart, one-line HTTPS |
-| ruff + uv + pre-commit | One linter, fast package manager, Python-native hooks |
-
-## Tools
-
-| Tool | Description |
-|------|-------------|
-| `read_file` | Read file contents (sensitive paths blocked) |
-| `list_files` | List directory contents |
-| `bash` | Run shell command (timeout, output capped, trusted-user-only) |
-| `edit_file` | Write content to file (atomic temp+rename) |
 
 ## Deployment
 
@@ -80,7 +54,7 @@ sudo systemctl enable --now pyagent                      # VPS
 sudo systemctl enable --now pyagent-digest.timer         # daily digest at 07:00
 ```
 
-Runtime: non-root container user, secrets via `env_file` (not mounted), SQLite in `./data/`, structured JSON logs to journald.
+Runtime: non-root container user, secrets via `env_file`, SQLite in `./data/`, JSON logs to journald.
 
 ## Security
 
