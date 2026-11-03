@@ -9,7 +9,8 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-      - ./.env:/app/.env:ro
+    env_file:
+      - .env
     environment:
       - DB_PATH=/app/data/agent.db
     healthcheck:

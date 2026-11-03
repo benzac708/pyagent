@@ -2,16 +2,50 @@
 
 import logging
 import os
+import stat
 
 import structlog
 from dotenv import load_dotenv
 
 load_dotenv()
 
+_SECRET_KEYS = {"api_key", "apikey", "secret", "token", "password", "passwd"}
+
+
+def _redact_processor(logger, method_name, event_dict):
+    """Redact values of any key whose name looks like a secret."""
+    for key in list(event_dict.keys()):
+        if any(s in key.lower() for s in _SECRET_KEYS):
+            event_dict[key] = "[REDACTED]"
+    # Redact secret-like substrings in string values (defence in depth).
+    for key, value in list(event_dict.items()):
+        if isinstance(value, str):
+            for secret in (os.getenv("API_KEY", ""), os.getenv("FALLBACK_API_KEY", "")):
+                if secret and secret in value:
+                    event_dict[key] = value.replace(secret, "[REDACTED]")
+    return event_dict
+
+
+def _check_env_perms():
+    """Warn if .env is world-readable."""
+    for path in (".env",):
+        try:
+            mode = os.stat(path).st_mode
+        except FileNotFoundError:
+            continue
+        if mode & (stat.S_IRGRP | stat.S_IROTH):
+            logging.getLogger("pyagent").warning(
+                ".env is group/world readable (%s); chmod 600 recommended", oct(mode & 0o777)
+            )
+
+
+_check_env_perms()
+
 structlog.configure(
     processors=[
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.add_log_level,
+        _redact_processor,
         structlog.processors.JSONRenderer(),
     ],
     wrapper_class=structlog.make_filtering_bound_logger(

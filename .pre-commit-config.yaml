@@ -7,6 +7,12 @@ repos:
       - id: ruff-format
   - repo: local
     hooks:
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks protect --staged --redact
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: pytest
         name: pytest
         entry: .venv/bin/pytest
