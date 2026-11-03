@@ -5,9 +5,8 @@ After=pyagent.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/pyagent
-ExecStart=/usr/bin/docker compose exec -T pyagent uv run python -m agent "read README.md and summarize the project status in 5 bullets"
+ExecStart=/usr/bin/docker compose exec -T -e MAX_ITERATIONS=20 pyagent uv run python -m agent "read README.md and summarize the project status in 5 bullets"
 EnvironmentFile=/opt/pyagent/.env
-Environment=MAX_ITERATIONS=20
 
 [Install]
 WantedBy=multi-user.target
