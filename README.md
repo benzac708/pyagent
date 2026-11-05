@@ -7,7 +7,7 @@ A minimal, self-hosted VPS triage agent that diagnoses failures and proposes fix
 
 ## What is this?
 
-- **One job, one loop, three tools** — checks VPS health, produces a structured JSON digest, and stops. No multi-agent orchestration, no framework bloat.
+- **One job, one loop, minimal toolset** — checks VPS health, produces a structured JSON digest, and stops. No multi-agent orchestration, no framework bloat.
 - **Config-driven** — all checks, thresholds, and allowlists live in `watch-checks.json`. Adding a new check is a JSON edit, not a code change.
 - **Rails in code, not in prompts** — tool allowlists, path denylists, token/iteration caps, and JSON schema validation are enforced by the runtime. The LLM can't override them.
 - **Clone-and-run** — `cp .env.example .env`, fill 3 values, `docker compose up`. Working agent in 60 seconds.
