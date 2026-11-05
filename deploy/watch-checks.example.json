@@ -1,0 +1,33 @@
+{
+  "checks": [
+    {
+      "type": "http",
+      "name": "pyagent",
+      "url": "http://localhost:8000/health",
+      "expect_status": 200
+    },
+    {
+      "type": "disk",
+      "path": "/",
+      "threshold_pct": 85
+    },
+    {
+      "type": "backup",
+      "path": "/home/ubuntu/backups/jobs/jobs.db",
+      "max_age_hours": 25
+    }
+  ],
+  "agent": {
+    "compose_dir": "/opt/pyagent",
+    "container": "pyagent",
+    "max_iterations": 5,
+    "max_tokens": 8000,
+    "allowed_tools": ["check_disk", "check_backups", "read_file", "list_runs", "check_health"],
+    "response_format": "json"
+  },
+  "remediation": {
+    "restart_allowlist": ["pyagent"],
+    "max_restarts": 3,
+    "restart_window_seconds": 600
+  }
+}

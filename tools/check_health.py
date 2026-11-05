@@ -1,26 +1,19 @@
-"""Check the health of a known service via its HTTP endpoint (read-only)."""
+"""Check the health of an HTTP endpoint (read-only)."""
 
 import urllib.request
 
 from pydantic import BaseModel
 
-_HEALTH_URLS = {
-    "pyagent": "http://localhost:8000/health",
-}
-
 
 class CheckHealthInput(BaseModel):
-    service: str
+    url: str
 
 
-def check_health(service: str) -> str:
-    """Return health status for a known service. Read-only, no side effects."""
-    url = _HEALTH_URLS.get(service)
-    if url is None:
-        return f"Error: unknown service '{service}'. Known: {', '.join(_HEALTH_URLS)}"
+def check_health(url: str) -> str:
+    """Return health status for an HTTP endpoint. Read-only, no side effects."""
     try:
         with urllib.request.urlopen(url, timeout=5) as r:
             body = r.read().decode()
-            return f"service={service} status=healthy http={r.status} body={body[:200]}"
+            return f"url={url} status=healthy http={r.status} body={body[:200]}"
     except Exception as e:
-        return f"service={service} status=unhealthy error={e}"
+        return f"url={url} status=unhealthy error={e}"

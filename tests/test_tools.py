@@ -98,3 +98,10 @@ def test_read_file_blocks_secrets():
     result = read_file(".env")
     assert result.startswith("Error:")
     assert "not allowed" in result
+
+
+def test_check_health_bad_url():
+    from tools.check_health import check_health
+
+    result = check_health("http://127.0.0.1:1/health")
+    assert "unhealthy" in result
