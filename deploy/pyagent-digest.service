@@ -5,9 +5,8 @@ After=pyagent.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/pyagent
-ExecStart=/usr/bin/docker compose exec -T -e MAX_ITERATIONS=20 pyagent uv run python -m agent "read README.md and summarize the project status in 5 bullets"
+ExecStart=/usr/bin/docker compose exec -T -e MAX_ITERATIONS=5 pyagent uv run python -m agent "Run check_disk on /, check_services for ['pyagent','docker','caddy'], and check_backups on /home/ubuntu/backups/jobs/jobs.db. Then output a JSON object with keys: status (ok|warn|fail), findings (list of short strings), recommendations (list of short strings). Only include findings for checks that are not healthy. If everything is healthy, findings and recommendations must be empty lists."
 EnvironmentFile=/opt/pyagent/.env
 
 [Install]
 WantedBy=multi-user.target
-

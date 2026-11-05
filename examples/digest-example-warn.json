@@ -1,0 +1,11 @@
+{
+  "status": "warn",
+  "findings": [
+    "disk usage at 87% on /",
+    "backup jobs.db is 30h old (expected < 24h)"
+  ],
+  "recommendations": [
+    "free space or expand the volume before it hits 95%",
+    "check vps-backup-jobs-to-github.timer and rerun the backup"
+  ]
+}

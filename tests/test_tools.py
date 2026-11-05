@@ -1,6 +1,9 @@
 """Tests for tools."""
 
 from tools.bash import bash
+from tools.check_backups import check_backups
+from tools.check_disk import check_disk
+from tools.check_services import check_services
 from tools.edit_file import edit_file
 from tools.list_files import list_files
 from tools.read_file import read_file
@@ -58,3 +61,28 @@ def test_edit_file_overwrite(tmp_path):
     edit_file(path, "first")
     edit_file(path, "second")
     assert open(path).read() == "second"
+
+
+def test_check_disk():
+    result = check_disk("/")
+    assert "used_pct=" in result
+
+
+def test_check_disk_bad_path():
+    result = check_disk("/nonexistent-path-xyz")
+    assert result.startswith("Error:")
+
+
+def test_check_backups_exists():
+    result = check_backups("README.md")
+    assert "exists=true" in result
+
+
+def test_check_backups_missing():
+    result = check_backups("no-such-file-xyz.md")
+    assert "exists=false" in result
+
+
+def test_check_services_unknown():
+    result = check_services(["definitely-not-a-real-service-xyz"])
+    assert "definitely-not-a-real-service-xyz" in result
