@@ -15,6 +15,8 @@ Env: ACTUATOR_TOKEN (required), ACTUATOR_PORT (default 8099),
 import http.server
 import json
 import os
+import socket
+import socketserver
 import subprocess
 import time
 import urllib.request
@@ -138,6 +140,21 @@ if __name__ == "__main__":
     if not TOKEN:
         print("ACTUATOR_TOKEN is required", file=__import__("sys").stderr)
         raise SystemExit(1)
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"actuator listening on 127.0.0.1:{PORT}, allowlist={ALLOWLIST}")
+    SOCKET_PATH = os.getenv("ACTUATOR_SOCKET", "")
+    if SOCKET_PATH:
+
+        class UnixHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+            address_family = socket.AF_UNIX
+
+            def server_bind(self):
+                if os.path.exists(SOCKET_PATH):
+                    os.unlink(SOCKET_PATH)
+                super().server_bind()
+                os.chmod(SOCKET_PATH, 0o666)
+
+        server = UnixHTTPServer(SOCKET_PATH, Handler)
+        print(f"actuator listening on unix:{SOCKET_PATH}, allowlist={ALLOWLIST}")
+    else:
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+        print(f"actuator listening on 127.0.0.1:{PORT}, allowlist={ALLOWLIST}")
     server.serve_forever()

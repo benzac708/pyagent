@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+      - /run/pyagent-actuator.sock:/run/pyagent-actuator.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
