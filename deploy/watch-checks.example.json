@@ -22,7 +22,7 @@
     "container": "pyagent",
     "max_iterations": 5,
     "max_tokens": 8000,
-    "allowed_tools": ["check_disk", "check_backups", "read_file", "list_runs", "check_health"],
+    "allowed_tools": ["check_disk", "check_backups", "read_file", "list_runs", "check_health", "restart_service"],
     "response_format": "json"
   },
   "remediation": {
