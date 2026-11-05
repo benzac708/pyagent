@@ -6,6 +6,7 @@ from tools.check_disk import check_disk
 from tools.check_services import check_services
 from tools.edit_file import edit_file
 from tools.list_files import list_files
+from tools.list_runs import list_runs
 from tools.read_file import read_file
 
 
@@ -86,3 +87,14 @@ def test_check_backups_missing():
 def test_check_services_unknown():
     result = check_services(["definitely-not-a-real-service-xyz"])
     assert "definitely-not-a-real-service-xyz" in result
+
+
+def test_list_runs_returns_string():
+    result = list_runs(2)
+    assert isinstance(result, str)
+
+
+def test_read_file_blocks_secrets():
+    result = read_file(".env")
+    assert result.startswith("Error:")
+    assert "not allowed" in result

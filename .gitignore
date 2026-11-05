@@ -9,3 +9,5 @@ __pycache__/
 
 .env.bak
 .env.*
+*.db-shm
+*.db-wal

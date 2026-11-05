@@ -9,12 +9,14 @@ from tools.check_disk import CheckDiskInput, check_disk
 from tools.check_services import CheckServicesInput, check_services
 from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
+from tools.list_runs import ListRunsInput, list_runs
 from tools.read_file import ReadFileInput, read_file
 
 _ALLOWED = {t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()}
 
 _INPUT_MODELS = {
     "read_file": ReadFileInput,
+    "list_runs": ListRunsInput,
     "check_disk": CheckDiskInput,
     "check_services": CheckServicesInput,
     "check_backups": CheckBackupsInput,
@@ -32,6 +34,14 @@ TOOLS: list[dict[str, Any]] = [
             "name": "read_file",
             "description": "Read the contents of a file at the given path.",
             "parameters": ReadFileInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_runs",
+            "description": "List the most recent agent runs (id, status, iterations, tokens, time). Read-only.",
+            "parameters": ListRunsInput.model_json_schema(),
         },
     },
     {
@@ -89,6 +99,7 @@ if _ALLOWED:
 
 TOOL_FUNCTIONS: dict[str, Any] = {
     "read_file": read_file,
+    "list_runs": list_runs,
     "check_disk": check_disk,
     "check_services": check_services,
     "check_backups": check_backups,
