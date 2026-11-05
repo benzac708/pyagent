@@ -148,10 +148,9 @@ def run_agent(config, failures):
     allowed_tools = ",".join(agent.get("allowed_tools", []))
     rf = agent.get("response_format", "json")
     prompt = (
-        f"The following VPS health checks failed: {'; '.join(failures)}. "
-        "Investigate using available tools. Call check_health to verify. "
-        "Output a JSON object with keys: status (warn|fail), findings (list of short strings), "
-        "recommendations (list of short strings), verified (boolean). Be concise."
+        f"VPS health checks failed: {'; '.join(failures)}. "
+        "Call check_health once, then output JSON: {status, findings[], recommendations[], verified}. "
+        "Be concise. Do not read additional files."
     )
     cmd = [
         "docker",
