@@ -1,5 +1,6 @@
 """Tool registry. Maps tool names to their schemas and functions."""
 
+import os
 from typing import Any
 
 from tools.bash import BashInput, bash
@@ -10,6 +11,8 @@ from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
 from tools.read_file import ReadFileInput, read_file
 
+_ALLOWED = {t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()}
+
 _INPUT_MODELS = {
     "read_file": ReadFileInput,
     "check_disk": CheckDiskInput,
@@ -19,6 +22,8 @@ _INPUT_MODELS = {
     "bash": BashInput,
     "edit_file": EditFileInput,
 }
+if _ALLOWED:
+    _INPUT_MODELS = {k: v for k, v in _INPUT_MODELS.items() if k in _ALLOWED}
 
 TOOLS: list[dict[str, Any]] = [
     {
@@ -79,6 +84,9 @@ TOOLS: list[dict[str, Any]] = [
     },
 ]
 
+if _ALLOWED:
+    TOOLS[:] = [t for t in TOOLS if t["function"]["name"] in _ALLOWED]
+
 TOOL_FUNCTIONS: dict[str, Any] = {
     "read_file": read_file,
     "check_disk": check_disk,
@@ -88,10 +96,14 @@ TOOL_FUNCTIONS: dict[str, Any] = {
     "bash": bash,
     "edit_file": edit_file,
 }
+if _ALLOWED:
+    TOOL_FUNCTIONS = {k: v for k, v in TOOL_FUNCTIONS.items() if k in _ALLOWED}
 
 
 def execute_tool(name: str, arguments: dict[str, Any]) -> str:
     """Execute a tool by name. Returns a string result (never raises)."""
+    if _ALLOWED and name not in _ALLOWED:
+        return f"Error: tool '{name}' is not allowed in this mode"
     func = TOOL_FUNCTIONS.get(name)
     if func is None:
         return f"Error: unknown tool '{name}'"

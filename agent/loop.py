@@ -14,6 +14,7 @@ from agent.config import (
     FALLBACK_BASE_URL,
     FALLBACK_MODEL,
     MAX_ITERATIONS,
+    MAX_TOKENS,
     MODEL,
     has_fallback,
     log,
@@ -80,6 +81,12 @@ def _run_loop(
             response, provider_name = get_chain().chat(messages, TOOLS)
             msg = response.choices[0].message
             total_tokens += response.usage.total_tokens if response.usage else 0
+
+            if total_tokens > MAX_TOKENS:
+                status = "max_tokens"
+                if not quiet:
+                    print(f"Warning: reached token budget ({MAX_TOKENS})")
+                break
 
             messages.append(msg.model_dump(exclude_none=True))
             save_message(

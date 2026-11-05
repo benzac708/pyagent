@@ -106,6 +106,8 @@ FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "")
 # App
 DB_PATH = os.getenv("DB_PATH", "agent.db")
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "10"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "50000"))
+ALLOWED_TOOLS = [t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()]
 
 
 def is_mock_mode() -> bool:
