@@ -77,7 +77,12 @@ class ProviderChain:
         self.session_id = str(uuid.uuid4())
         self.last_provider: Optional[str] = None
 
-    def chat(self, messages: list[Any], tools: Optional[list[Any]] = None) -> tuple[Any, str]:
+    def chat(
+        self,
+        messages: list[Any],
+        tools: Optional[list[Any]] = None,
+        response_format: Optional[dict[str, Any]] = None,
+    ) -> tuple[Any, str]:
         if os.getenv("MOCK_LLM", "").lower() in ("1", "true", "yes"):
             self.last_provider = "mock"
             return _mock_response(messages, tools)
@@ -85,11 +90,14 @@ class ProviderChain:
         for p in self.providers:
             try:
                 client = create_client(p["base_url"], p["api_key"], self.session_id)
-                response = client.chat.completions.create(
-                    model=p["model"],
-                    messages=messages,
-                    tools=tools if tools else None,
-                )
+                kwargs: dict[str, Any] = {
+                    "model": p["model"],
+                    "messages": messages,
+                    "tools": tools if tools else None,
+                }
+                if response_format:
+                    kwargs["response_format"] = response_format
+                response = client.chat.completions.create(**kwargs)
                 self.last_provider = p["name"]
                 return response, p["name"]
             except Exception as e:

@@ -107,6 +107,8 @@ FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "")
 DB_PATH = os.getenv("DB_PATH", "agent.db")
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "10"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "50000"))
+MAX_OUTPUT_RETRIES = int(os.getenv("MAX_OUTPUT_RETRIES", "2"))
+RESPONSE_FORMAT = os.getenv("RESPONSE_FORMAT", "")
 ALLOWED_TOOLS = [t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()]
 
 

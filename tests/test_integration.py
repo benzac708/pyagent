@@ -28,7 +28,7 @@ def test_loop_with_real_read_file_tool(tmp_db, monkeypatch):
     ]
     it = iter(responses)
 
-    def fake_chat(messages, tools=None):
+    def fake_chat(messages, tools=None, response_format=None):
         return next(it), "primary"
 
     mock_chain = MagicMock()
@@ -80,7 +80,7 @@ def test_cli_main_invocation(tmp_db, monkeypatch, capsys):
     responses = [make_response(content="cli reply", total_tokens=2)]
     it = iter(responses)
 
-    def fake_chat(messages, tools=None):
+    def fake_chat(messages, tools=None, response_format=None):
         return next(it), "primary"
 
     mock_chain = MagicMock()

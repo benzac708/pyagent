@@ -9,7 +9,7 @@ def _patch_chain(responses):
     """Make agent.loop.chain.chat return canned responses in order."""
     it = iter(responses)
 
-    def fake_chat(messages, tools=None):
+    def fake_chat(messages, tools=None, response_format=None):
         return next(it), "primary"
 
     return patch("agent.loop.chain", **{"chat.side_effect": fake_chat})

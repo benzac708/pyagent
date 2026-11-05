@@ -14,8 +14,10 @@ from agent.config import (
     FALLBACK_BASE_URL,
     FALLBACK_MODEL,
     MAX_ITERATIONS,
+    MAX_OUTPUT_RETRIES,
     MAX_TOKENS,
     MODEL,
+    RESPONSE_FORMAT,
     has_fallback,
     log,
     validate,
@@ -68,6 +70,7 @@ def _run_loop(
     provider_name = None
     final_content = None
     saved = False
+    output_retries = 0
     started_at = datetime.now(timezone.utc).isoformat()
 
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
@@ -78,7 +81,9 @@ def _run_loop(
             if verbose:
                 print(f"[iteration {iteration + 1}]")
 
-            response, provider_name = get_chain().chat(messages, TOOLS)
+            rf = RESPONSE_FORMAT.strip().lower()
+            rf_arg = {"type": "json_object"} if rf == "json" else None
+            response, provider_name = get_chain().chat(messages, TOOLS, response_format=rf_arg)
             msg = response.choices[0].message
             total_tokens += response.usage.total_tokens if response.usage else 0
 
@@ -87,6 +92,34 @@ def _run_loop(
                 if not quiet:
                     print(f"Warning: reached token budget ({MAX_TOKENS})")
                 break
+
+            rf = RESPONSE_FORMAT.strip().lower()
+            if rf == "json" and not msg.tool_calls and msg.content:
+                try:
+                    parsed = json.loads(msg.content)
+                    ok = (
+                        isinstance(parsed, dict)
+                        and "status" in parsed
+                        and "findings" in parsed
+                        and "recommendations" in parsed
+                    )
+                    if not ok:
+                        raise ValueError("missing required keys")
+                except (json.JSONDecodeError, ValueError):
+                    if output_retries < MAX_OUTPUT_RETRIES:
+                        output_retries += 1
+                        msg_text = (
+                            "Your previous output was not valid JSON matching the schema "
+                            "{status, findings[], recommendations[]}. Output only valid JSON, no markdown."
+                        )
+                        messages.append({"role": "user", "content": msg_text})
+                        save_message(conv_id, "user", content="Output correction: valid JSON only.")
+                        continue
+                    status = "error"
+                    error = "invalid JSON output after retries"
+                    if not quiet:
+                        print(f"Error: {error}")
+                    break
 
             messages.append(msg.model_dump(exclude_none=True))
             save_message(
