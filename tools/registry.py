@@ -12,11 +12,13 @@ from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
 from tools.list_runs import ListRunsInput, list_runs
 from tools.read_file import ReadFileInput, read_file
+from tools.restart_service import RestartServiceInput, restart_service
 
 _ALLOWED = {t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()}
 
 _INPUT_MODELS = {
     "read_file": ReadFileInput,
+    "restart_service": RestartServiceInput,
     "check_health": CheckHealthInput,
     "list_runs": ListRunsInput,
     "check_disk": CheckDiskInput,
@@ -36,6 +38,14 @@ TOOLS: list[dict[str, Any]] = [
             "name": "read_file",
             "description": "Read the contents of a file at the given path.",
             "parameters": ReadFileInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "restart_service",
+            "description": "Restart an allowlisted service via the host actuator. Returns result + verification.",
+            "parameters": RestartServiceInput.model_json_schema(),
         },
     },
     {
@@ -109,6 +119,7 @@ if _ALLOWED:
 
 TOOL_FUNCTIONS: dict[str, Any] = {
     "read_file": read_file,
+    "restart_service": restart_service,
     "check_health": check_health,
     "list_runs": list_runs,
     "check_disk": check_disk,

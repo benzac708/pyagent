@@ -9,6 +9,8 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
