@@ -27,8 +27,8 @@ def restart_service(service: str) -> str:
             class UnixHTTPConnection(http.client.HTTPConnection):
                 def connect(self):
                     self.sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+                    self.sock.settimeout(30)
                     self.sock.connect(socket_path)
-                    self.sock.settimeout(self.timeout)
 
             conn = UnixHTTPConnection(socket_path)
             conn.request("POST", "/restart", body=data, headers=headers)
