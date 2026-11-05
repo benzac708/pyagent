@@ -6,6 +6,7 @@ from typing import Any
 from tools.bash import BashInput, bash
 from tools.check_backups import CheckBackupsInput, check_backups
 from tools.check_disk import CheckDiskInput, check_disk
+from tools.check_health import CheckHealthInput, check_health
 from tools.check_services import CheckServicesInput, check_services
 from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
@@ -16,6 +17,7 @@ _ALLOWED = {t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.st
 
 _INPUT_MODELS = {
     "read_file": ReadFileInput,
+    "check_health": CheckHealthInput,
     "list_runs": ListRunsInput,
     "check_disk": CheckDiskInput,
     "check_services": CheckServicesInput,
@@ -34,6 +36,14 @@ TOOLS: list[dict[str, Any]] = [
             "name": "read_file",
             "description": "Read the contents of a file at the given path.",
             "parameters": ReadFileInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_health",
+            "description": "Check the HTTP health of a known service (read-only).",
+            "parameters": CheckHealthInput.model_json_schema(),
         },
     },
     {
@@ -99,6 +109,7 @@ if _ALLOWED:
 
 TOOL_FUNCTIONS: dict[str, Any] = {
     "read_file": read_file,
+    "check_health": check_health,
     "list_runs": list_runs,
     "check_disk": check_disk,
     "check_services": check_services,

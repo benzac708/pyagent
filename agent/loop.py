@@ -32,6 +32,8 @@ from agent.db import (
 from agent.providers import ProviderChain
 from tools.registry import TOOLS, execute_tool
 
+VERIFICATION_TOOLS = {"check_health"}
+
 chain = None
 
 
@@ -71,6 +73,7 @@ def _run_loop(
     final_content = None
     saved = False
     output_retries = 0
+    verified_called = False
     started_at = datetime.now(timezone.utc).isoformat()
 
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
@@ -102,15 +105,19 @@ def _run_loop(
                         and "status" in parsed
                         and "findings" in parsed
                         and "recommendations" in parsed
+                        and "verified" in parsed
+                        and isinstance(parsed.get("verified"), bool)
                     )
                     if not ok:
                         raise ValueError("missing required keys")
+                    if parsed.get("verified") is True and not verified_called:
+                        raise ValueError("claimed verified without calling a verification tool")
                 except (json.JSONDecodeError, ValueError):
                     if output_retries < MAX_OUTPUT_RETRIES:
                         output_retries += 1
                         msg_text = (
                             "Your previous output was not valid JSON matching the schema "
-                            "{status, findings[], recommendations[]}. Output only valid JSON, no markdown."
+                            "{status, findings[], recommendations[], verified}. Output only valid JSON, no markdown."
                         )
                         messages.append({"role": "user", "content": msg_text})
                         save_message(conv_id, "user", content="Output correction: valid JSON only.")
@@ -148,6 +155,8 @@ def _run_loop(
                     messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
                     save_message(conv_id, "tool", content=result, tool_call_id=tc.id)
                     continue
+                if tc.function.name in VERIFICATION_TOOLS:
+                    verified_called = True
                 result = execute_tool(tc.function.name, args)
                 if verbose:
                     print(f"  result: {result[:200]}")
