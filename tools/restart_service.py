@@ -25,7 +25,7 @@ def restart_service(service: str) -> str:
             import socket as _socket
 
             class UnixHTTPConnection(http.client.HTTPConnection):
-                def connect(self):
+                def connect(self) -> None:
                     self.sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
                     self.sock.settimeout(30)
                     self.sock.connect(socket_path)
