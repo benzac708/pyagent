@@ -19,7 +19,6 @@ import socket
 import socketserver
 import subprocess
 import time
-import urllib.request
 from datetime import datetime, timezone
 
 PORT = int(os.getenv("ACTUATOR_PORT", "8099"))
@@ -76,15 +75,12 @@ def do_restart(service):
     try:
         subprocess.run(["systemctl", "restart", service], check=True, timeout=30)
         time.sleep(3)
-        # verify
-        url = HEALTH_URLS.get(service)
-        healthy = False
-        if url:
-            try:
-                with urllib.request.urlopen(url, timeout=5) as r:
-                    healthy = r.status == 200
-            except Exception:
-                healthy = False
+        # verify via systemctl (works for any service)
+        try:
+            vr = subprocess.run(["systemctl", "is-active", service], capture_output=True, text=True, timeout=5)
+            healthy = vr.stdout.strip() == "active"
+        except Exception:
+            healthy = False
         os.makedirs(os.path.dirname(STATE_FILE) or ".", exist_ok=True)
         with open(STATE_FILE, "a") as f:
             f.write(f"{time.time()}\n")
