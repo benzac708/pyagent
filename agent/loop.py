@@ -2,6 +2,7 @@
 
 import concurrent.futures
 import json
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -77,6 +78,7 @@ def _run_loop(
     verified_called = False
     started_at = datetime.now(timezone.utc).isoformat()
     notes: dict[str, Any] = {}  # working memory: latest result per tool
+    events: list[dict[str, Any]] = []  # simple event log
 
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
 
@@ -91,6 +93,16 @@ def _run_loop(
             response, provider_name = get_chain().chat(messages, TOOLS, response_format=rf_arg)
             msg = response.choices[0].message
             total_tokens += response.usage.total_tokens if response.usage else 0
+            # Event log: generation completed.
+            events.append(
+                {
+                    "type": "generation_completed",
+                    "provider": provider_name,
+                    "tokens": response.usage.total_tokens if response.usage else 0,
+                    "has_tool_calls": bool(msg.tool_calls),
+                    "ts": time.time(),
+                }
+            )
 
             if total_tokens > MAX_TOKENS:
                 status = "max_tokens"
@@ -194,6 +206,15 @@ def _run_loop(
                     save_message(conv_id, "tool", content=str(result), tool_call_id=tc.id)
                     # Working memory: keep latest result per tool (truncated).
                     notes[tc.function.name] = str(result)[:500]
+                    # Event log: tool completed.
+                    events.append(
+                        {
+                            "type": "tool_completed",
+                            "tool": tc.function.name,
+                            "is_error": str(result).startswith("Error:"),
+                            "ts": time.time(),
+                        }
+                    )
         else:
             status = "max_iterations"
             if not quiet:
@@ -204,6 +225,16 @@ def _run_loop(
         if not quiet:
             print(f"Error: {e}")
 
+    # Event log: agent completed.
+    events.append(
+        {
+            "type": "agent_completed",
+            "status": status,
+            "iterations": iterations,
+            "total_tokens": total_tokens,
+            "ts": time.time(),
+        }
+    )
     if not saved:
         try:
             save_run(
@@ -216,6 +247,7 @@ def _run_loop(
                 error,
                 started_at=started_at,
                 notes=notes,
+                events=events,
             )
             saved = True
         except Exception:
@@ -230,6 +262,7 @@ def _run_loop(
         total_tokens=total_tokens,
         status=status,
         notes=list(notes.keys()),
+        events=len(events),
     )
 
     if verbose and not quiet:
@@ -248,6 +281,7 @@ def _run_loop(
         "error": error,
         "response": final_content,
         "notes": notes,
+        "events": events,
     }
 
 
