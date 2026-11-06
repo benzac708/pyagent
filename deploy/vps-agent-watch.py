@@ -141,11 +141,8 @@ def try_remediate(failures, config):
 
 def run_agent(config, failures):
     agent = config.get("agent", {})
-    compose_dir = agent.get("compose_dir", "/opt/pyagent")
-    container = agent.get("container", "pyagent")
     max_iter = agent.get("max_iterations", 5)
     max_tokens = agent.get("max_tokens", 8000)
-    allowed_tools = ",".join(agent.get("allowed_tools", []))
     rf = agent.get("response_format", "json")
     prompt = (
         f"VPS health checks failed: {'; '.join(failures)}. "
@@ -154,29 +151,58 @@ def run_agent(config, failures):
         "Then output JSON: {status, findings[], recommendations[], verified, action}. "
         "You may request restart_service for allowlisted services. Be concise. Do not read additional files."
     )
-    cmd = [
-        "docker",
-        "compose",
-        "exec",
-        "-T",
-        "-e",
-        f"MAX_ITERATIONS={max_iter}",
-        "-e",
-        f"MAX_TOKENS={max_tokens}",
-        "-e",
-        f"ALLOWED_TOOLS={allowed_tools}",
-        "-e",
-        f"RESPONSE_FORMAT={rf}",
-        container,
-        "uv",
-        "run",
-        "python",
-        "-m",
-        "agent",
-        prompt,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=compose_dir, timeout=120)
-    output = result.stdout + result.stderr
+
+    # Detect host mode: if Docker is not available, call the local API.
+    docker_available = False
+    try:
+        subprocess.run(["docker", "info"], capture_output=True, timeout=5, check=True)
+        docker_available = True
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        docker_available = False
+
+    if docker_available:
+        compose_dir = agent.get("compose_dir", "/opt/pyagent")
+        container = agent.get("container", "pyagent")
+        allowed_tools = ",".join(agent.get("allowed_tools", []))
+        cmd = [
+            "docker",
+            "compose",
+            "exec",
+            "-T",
+            "-e",
+            f"MAX_ITERATIONS={max_iter}",
+            "-e",
+            f"MAX_TOKENS={max_tokens}",
+            "-e",
+            f"ALLOWED_TOOLS={allowed_tools}",
+            "-e",
+            f"RESPONSE_FORMAT={rf}",
+            container,
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "agent",
+            prompt,
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=compose_dir, timeout=120)
+        output = result.stdout + result.stderr
+    else:
+        # Host mode: call the local API.
+        import urllib.request
+
+        payload = json.dumps({"prompt": prompt}).encode()
+        req = urllib.request.Request(
+            "http://localhost:8000/run",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                output = resp.read().decode()
+        except Exception as e:
+            output = str(e)
     print(output)
     # parse JSON from output
     import re

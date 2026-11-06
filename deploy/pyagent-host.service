@@ -1,0 +1,19 @@
+[Unit]
+Description=pyagent API server (host mode)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/pyagent
+EnvironmentFile=/opt/pyagent/.env
+ExecStart=/opt/pyagent/.venv/bin/uvicorn api.server:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "written"

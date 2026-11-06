@@ -76,7 +76,11 @@ fi
 # 6. Install systemd units
 if [ "$SKIP_SYSTEMD" = false ]; then
   echo "--- Installing systemd units ---"
-  run "sudo cp $APP_DIR/deploy/pyagent.service /etc/systemd/system/"
+  if [ "$SKIP_DOCKER" = true ]; then
+    run "sudo cp $APP_DIR/deploy/pyagent-host.service /etc/systemd/system/pyagent.service"
+  else
+    run "sudo cp $APP_DIR/deploy/pyagent.service /etc/systemd/system/"
+  fi
   run "sudo cp $APP_DIR/deploy/vps-agent-watch.service /etc/systemd/system/"
   run "sudo cp $APP_DIR/deploy/vps-agent-watch.timer /etc/systemd/system/"
   run "sudo cp $APP_DIR/deploy/vps-actuator.service /etc/systemd/system/"
