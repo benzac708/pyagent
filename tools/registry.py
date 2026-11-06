@@ -57,7 +57,7 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "check_health",
-            "description": "Check the HTTP health of a known service (read-only).",
+            "description": "HTTP health check of a service URL. Call to verify a fix worked. Read-only.",
             "parameters": CheckHealthInput.model_json_schema(),
         },
     },
@@ -73,7 +73,7 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "check_disk",
-            "description": "Check disk usage for a path. Returns total/used/free GB and used percentage.",
+            "description": "Check disk usage for a path. Returns total/used/free GB and %. Read-only.",
             "parameters": CheckDiskInput.model_json_schema(),
         },
     },
@@ -81,7 +81,7 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "check_services",
-            "description": "Check whether systemd services are active. Returns active/inactive for each.",
+            "description": "Check if specific systemd services are active. Read-only.",
             "parameters": CheckServicesInput.model_json_schema(),
         },
     },
@@ -89,7 +89,7 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "check_backups",
-            "description": "Check whether a backup file exists and how old it is.",
+            "description": "Check backup file existence and age. Read-only.",
             "parameters": CheckBackupsInput.model_json_schema(),
         },
     },
@@ -97,7 +97,7 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "check_failed_services",
-            "description": "List all failed systemd units. Read-only. Returns 'No failed units.' if none.",
+            "description": "List all failed systemd units. Call FIRST. Read-only.",
             "parameters": CheckFailedServicesInput.model_json_schema(),
         },
     },

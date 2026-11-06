@@ -59,6 +59,30 @@ def get_chain() -> Any:
     return chain
 
 
+SYSTEM_PROMPT = (
+    "You are a VPS triage agent. Your job is to diagnose VPS health issues and produce a JSON report.\n\n"
+    "RULES:\n"
+    "1. Call tools to gather information. Do not guess.\n"
+    "2. After gathering enough information (max 3 tool calls), output your final answer as JSON.\n"
+    "3. Do NOT explore files, read source code, or run unnecessary commands.\n"
+    "4. Do NOT call more than 3 tools total across all iterations.\n"
+    "5. Your final output MUST be valid JSON with these fields: status, findings, recommendations, verified.\n"
+    "6. Set verified=true ONLY if you called check_health and it returned healthy.\n"
+    "7. Be concise. Do not explain your reasoning in the output.\n\n"
+    "TOOLS (use only these, in this order):\n"
+    "- check_failed_services: lists failed systemd units. Call FIRST.\n"
+    "- check_disk: disk usage for a path. Call if disk might be an issue.\n"
+    "- check_backups: backup file age. Call if backups might be stale.\n"
+    "- check_health: HTTP health check. Call to verify a fix.\n"
+    "- restart_service: restart an allowlisted service (requires confirmed=true).\n\n"
+    "DO NOT use: read_file, list_files, bash, edit_file, list_runs (unless specifically needed).\n\n"
+    "OUTPUT FORMAT (JSON only, no markdown):\n"
+    '{"status": "ok|warning|critical", "findings": ["..."], "recommendations": ["..."], "verified": true|false}\n'
+)
+
+MAX_TOOL_RESULT_CHARS = 1000
+
+
 def _run_loop(
     messages: list[dict[str, Any]],
     conv_id: str,
@@ -80,11 +104,26 @@ def _run_loop(
     notes: dict[str, Any] = {}  # working memory: latest result per tool
     events: list[dict[str, Any]] = []  # simple event log
 
+    # Inject system prompt if not already present.
+    if not any(m.get("role") == "system" for m in messages):
+        messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
 
     try:
         for iteration in range(MAX_ITERATIONS):
             iterations = iteration + 1
+            # Forced convergence: tell LLM to stop exploring when running out of iterations.
+            if iteration >= MAX_ITERATIONS - 2:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": "You have limited iterations remaining. "
+                        "Output your final JSON answer NOW. Do not call more tools.",
+                    }
+                )
+                save_message(conv_id, "user", content="Output your final JSON answer now.")
+
             if verbose:
                 print(f"[iteration {iteration + 1}]")
 
@@ -202,7 +241,8 @@ def _run_loop(
                                 break
                     if verbose:
                         print(f"  result: {str(result)[:200]}")
-                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
+                    truncated = str(result)[:MAX_TOOL_RESULT_CHARS]
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": truncated})
                     save_message(conv_id, "tool", content=str(result), tool_call_id=tc.id)
                     # Working memory: keep latest result per tool (truncated).
                     notes[tc.function.name] = str(result)[:500]
