@@ -6,6 +6,7 @@ from typing import Any
 from tools.bash import BashInput, bash
 from tools.check_backups import CheckBackupsInput, check_backups
 from tools.check_disk import CheckDiskInput, check_disk
+from tools.check_failed_services import CheckFailedServicesInput, check_failed_services
 from tools.check_health import CheckHealthInput, check_health
 from tools.check_services import CheckServicesInput, check_services
 from tools.edit_file import EditFileInput, edit_file
@@ -27,6 +28,7 @@ _INPUT_MODELS = {
     "check_disk": CheckDiskInput,
     "check_services": CheckServicesInput,
     "check_backups": CheckBackupsInput,
+    "check_failed_services": CheckFailedServicesInput,
     "list_files": ListFilesInput,
     "bash": BashInput,
     "edit_file": EditFileInput,
@@ -94,6 +96,14 @@ TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "check_failed_services",
+            "description": "List all failed systemd units. Read-only. Returns 'No failed units.' if none.",
+            "parameters": CheckFailedServicesInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "list_files",
             "description": "List files and directories at the given path.",
             "parameters": ListFilesInput.model_json_schema(),
@@ -128,6 +138,7 @@ TOOL_FUNCTIONS: dict[str, Any] = {
     "check_disk": check_disk,
     "check_services": check_services,
     "check_backups": check_backups,
+    "check_failed_services": check_failed_services,
     "list_files": list_files,
     "bash": bash,
     "edit_file": edit_file,

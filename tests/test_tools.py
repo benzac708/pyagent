@@ -105,3 +105,11 @@ def test_check_health_bad_url():
 
     result = check_health("http://127.0.0.1:1/health")
     assert "unhealthy" in result
+
+
+def test_check_failed_services_returns_string():
+    from tools.check_failed_services import check_failed_services
+
+    result = check_failed_services()
+    assert isinstance(result, str)
+    assert len(result) > 0
