@@ -75,6 +75,7 @@ def _run_loop(
     output_retries = 0
     verified_called = False
     started_at = datetime.now(timezone.utc).isoformat()
+    notes: dict[str, Any] = {}  # working memory: latest result per tool
 
     log.info("run_started", conv_id=conv_id, prompt=str(messages[-1].get("content", ""))[:100])
 
@@ -162,6 +163,8 @@ def _run_loop(
                     print(f"  result: {result[:200]}")
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
                 save_message(conv_id, "tool", content=result, tool_call_id=tc.id)
+                # Working memory: keep latest result per tool (truncated).
+                notes[tc.function.name] = result[:500] if isinstance(result, str) else result
         else:
             status = "max_iterations"
             if not quiet:
@@ -174,7 +177,17 @@ def _run_loop(
 
     if not saved:
         try:
-            save_run(run_id, conv_id, provider_name, iterations, total_tokens, status, error, started_at=started_at)
+            save_run(
+                run_id,
+                conv_id,
+                provider_name,
+                iterations,
+                total_tokens,
+                status,
+                error,
+                started_at=started_at,
+                notes=notes,
+            )
             saved = True
         except Exception:
             pass
@@ -187,6 +200,7 @@ def _run_loop(
         iterations=iterations,
         total_tokens=total_tokens,
         status=status,
+        notes=list(notes.keys()),
     )
 
     if verbose and not quiet:
@@ -204,6 +218,7 @@ def _run_loop(
         "status": status,
         "error": error,
         "response": final_content,
+        "notes": notes,
     }
 
 

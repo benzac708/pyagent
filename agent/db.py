@@ -53,9 +53,16 @@ def init_db() -> None:
             error TEXT,
             started_at TEXT NOT NULL,
             finished_at TEXT,
+            notes TEXT,
             FOREIGN KEY (conv_id) REFERENCES conversations(id)
         );
     """)
+    # Migration: add notes column to existing tables.
+    try:
+        conn.execute("ALTER TABLE runs ADD COLUMN notes TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -98,6 +105,7 @@ def save_run(
     status: str,
     error: Optional[str] = None,
     started_at: Optional[str] = None,
+    notes: Optional[dict[str, Any]] = None,
 ) -> None:
     now = datetime.now(timezone.utc).isoformat()
     if started_at is None:
@@ -105,8 +113,19 @@ def save_run(
     conn = get_conn()
     conn.execute(
         "INSERT INTO runs (id, conv_id, provider, iterations, total_tokens, "
-        "status, error, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, conv_id, provider, iterations, total_tokens, status, error, started_at, now),
+        "status, error, started_at, finished_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            run_id,
+            conv_id,
+            provider,
+            iterations,
+            total_tokens,
+            status,
+            error,
+            started_at,
+            now,
+            json.dumps(notes) if notes else None,
+        ),
     )
     conn.commit()
     conn.close()
