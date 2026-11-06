@@ -26,7 +26,7 @@ def list_runs(limit: int = 5) -> str:
         lines = []
         for r in rows:
             lines.append(
-                f"id={r[0]} conv={r[1]} provider={r[2]} iters={r[3]} " f"tokens={r[4]} status={r[5]} started={r[6]}"
+                f"id={r[0]} conv={r[1]} provider={r[2]} iters={r[3]} tokens={r[4]} status={r[5]} started={r[6]}"
             )
         return "\n".join(lines)
     except Exception as e:

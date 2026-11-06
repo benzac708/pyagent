@@ -161,7 +161,7 @@ def _run_loop(
 
             # Execute tool calls in parallel (read-only tools can run concurrently).
             with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(msg.tool_calls), 8)) as pool:
-                futures = []
+                futures: list[tuple[Any, Optional[dict[str, Any]], Optional[str]]] = []
                 for tc in msg.tool_calls:
                     if verbose:
                         print(f"  tool: {tc.function.name}({tc.function.arguments})")
@@ -177,12 +177,12 @@ def _run_loop(
                     futures.append((tc, args, None))
 
                 # Run valid tools in parallel.
-                def _run(tc, args):
+                def _run(tc: Any, args: dict[str, Any]) -> str:
                     return execute_tool(tc.function.name, args)
 
-                future_map = {}
+                future_map: dict[str, concurrent.futures.Future[str]] = {}
                 for tc, args, err in futures:
-                    if args is None and err is not None:
+                    if args is None:
                         continue
                     future_map[tc.id] = pool.submit(_run, tc, args)
 
@@ -196,9 +196,9 @@ def _run_loop(
                     else:
                         # Invalid args case: find the error result.
                         result = "Error: invalid tool arguments"
-                        for t, a, e in futures:
-                            if t.id == tc.id and e is not None:
-                                result = e
+                        for t, a, err_val in futures:
+                            if t.id == tc.id and err_val is not None:
+                                result = err_val
                                 break
                     if verbose:
                         print(f"  result: {str(result)[:200]}")
