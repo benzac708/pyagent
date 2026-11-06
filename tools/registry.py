@@ -16,6 +16,9 @@ from tools.restart_service import RestartServiceInput, restart_service
 
 _ALLOWED = {t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()}
 
+# Tools that can modify state or run arbitrary commands require confirmation.
+DESTRUCTIVE_TOOLS = {"restart_service", "edit_file", "bash"}
+
 _INPUT_MODELS = {
     "read_file": ReadFileInput,
     "restart_service": RestartServiceInput,
@@ -140,6 +143,13 @@ def execute_tool(name: str, arguments: dict[str, Any]) -> str:
     func = TOOL_FUNCTIONS.get(name)
     if func is None:
         return f"Error: unknown tool '{name}'"
+    # Human-in-the-loop: destructive tools require explicit confirmation.
+    if name in DESTRUCTIVE_TOOLS:
+        if not arguments.get("confirmed"):
+            return (
+                f"Confirmation required: '{name}' is a destructive operation. "
+                f"Verify necessity, then re-call with confirmed=true."
+            )
     model = _INPUT_MODELS.get(name)
     if model is not None:
         try:
@@ -147,7 +157,9 @@ def execute_tool(name: str, arguments: dict[str, Any]) -> str:
             arguments = validated.model_dump()
         except Exception as e:
             return f"Error: invalid arguments: {e}"
+    # Strip the confirmation flag before calling the function.
+    call_args = {k: v for k, v in arguments.items() if k != "confirmed"}
     try:
-        return str(func(**arguments))
+        return str(func(**call_args))
     except Exception as e:
         return f"Error: {e}"

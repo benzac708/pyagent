@@ -9,9 +9,10 @@ from pydantic import BaseModel
 
 class RestartServiceInput(BaseModel):
     service: str
+    confirmed: bool = False
 
 
-def restart_service(service: str) -> str:
+def restart_service(service: str, confirmed: bool = False) -> str:
     """Restart a service through the host actuator. Only allowlisted services."""
     token = os.getenv("ACTUATOR_TOKEN", "")
     if not token:

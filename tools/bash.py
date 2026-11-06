@@ -28,9 +28,10 @@ def _is_blocked(command: str) -> bool:
 class BashInput(BaseModel):
     command: str
     timeout: int = 30
+    confirmed: bool = False
 
 
-def bash(command: str, timeout: int = 30) -> str:
+def bash(command: str, timeout: int = 30, confirmed: bool = False) -> str:
     """Run a shell command. Returns stdout + stderr. Times out after `timeout`s."""
     if os.getenv("BASH_ENABLED", "true").lower() not in ("1", "true", "yes"):
         return "Error: bash tool is disabled (BASH_ENABLED=false)"

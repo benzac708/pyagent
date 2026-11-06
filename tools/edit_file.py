@@ -11,9 +11,10 @@ from tools.read_file import _is_sensitive
 class EditFileInput(BaseModel):
     path: str
     content: str
+    confirmed: bool = False
 
 
-def edit_file(path: str, content: str) -> str:
+def edit_file(path: str, content: str, confirmed: bool = False) -> str:
     """Write content to a file. Uses temp file + rename for atomicity."""
     if _is_sensitive(path):
         return "Error: writing this file is not allowed (sensitive path)"
