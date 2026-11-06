@@ -229,7 +229,7 @@ def _run_loop(
                 messages.append(
                     {
                         "role": "user",
-                        "content": "Tool call budget exhausted. " "Output your final JSON answer now.",
+                        "content": "Tool call budget exhausted. Output your final JSON answer now.",
                     }
                 )
                 save_message(conv_id, "user", content="Tool call budget exhausted. Output final JSON.")
@@ -241,7 +241,7 @@ def _run_loop(
                     messages.append(
                         {
                             "role": "user",
-                            "content": "You must output your final JSON answer now. " "Do not call more tools.",
+                            "content": "You must output your final JSON answer now. Do not call more tools.",
                         }
                     )
                     save_message(conv_id, "user", content="Output your final JSON answer now.")
