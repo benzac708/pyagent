@@ -16,7 +16,7 @@ jobs:
       - run: uv run ruff format --check .
       - name: Check for em/en dashes
         run: |
-          if grep -rn $'\u2014\|\u2013' --include='*.py' --include='*.md' --include='*.yml' --include='*.yaml' --include='*.toml' . ; then
+          if grep -rn $'\u2014\|\u2013' --include='*.py' --include='*.md' --include='*.yml' --include='*.yaml' --include='*.toml' --exclude-dir=.venv . ; then
             echo "Em/en dashes found. Use hyphens instead."
             exit 1
           fi

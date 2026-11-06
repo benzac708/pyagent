@@ -5,6 +5,8 @@ import sys
 files = sys.argv[1:] if len(sys.argv) > 1 else []
 bad = False
 for f in files:
+    if ".venv" in f or "node_modules" in f:
+        continue
     try:
         with open(f, encoding="utf-8") as fh:
             for i, line in enumerate(fh, 1):
