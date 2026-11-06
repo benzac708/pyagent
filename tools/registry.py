@@ -11,8 +11,10 @@ from tools.check_health import CheckHealthInput, check_health
 from tools.check_services import CheckServicesInput, check_services
 from tools.edit_file import EditFileInput, edit_file
 from tools.list_files import ListFilesInput, list_files
+from tools.list_processes import ListProcessesInput, list_processes
 from tools.list_runs import ListRunsInput, list_runs
 from tools.read_file import ReadFileInput, read_file
+from tools.read_journal import ReadJournalInput, read_journal
 from tools.restart_service import RestartServiceInput, restart_service
 
 _ALLOWED = {t.strip() for t in os.getenv("ALLOWED_TOOLS", "").split(",") if t.strip()}
@@ -24,6 +26,8 @@ _INPUT_MODELS = {
     "read_file": ReadFileInput,
     "restart_service": RestartServiceInput,
     "check_health": CheckHealthInput,
+    "list_processes": ListProcessesInput,
+    "read_journal": ReadJournalInput,
     "list_runs": ListRunsInput,
     "check_disk": CheckDiskInput,
     "check_services": CheckServicesInput,
@@ -59,6 +63,22 @@ TOOLS: list[dict[str, Any]] = [
             "name": "check_health",
             "description": "HTTP health check of a service URL. Call to verify a fix worked. Read-only.",
             "parameters": CheckHealthInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_journal",
+            "description": "Read last N journal lines for a systemd unit. Call to diagnose crash reason. Read-only.",
+            "parameters": ReadJournalInput.model_json_schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_processes",
+            "description": "List top processes by CPU or memory. Call to find resource hogs. Read-only.",
+            "parameters": ListProcessesInput.model_json_schema(),
         },
     },
     {
@@ -134,6 +154,8 @@ TOOL_FUNCTIONS: dict[str, Any] = {
     "read_file": read_file,
     "restart_service": restart_service,
     "check_health": check_health,
+    "list_processes": list_processes,
+    "read_journal": read_journal,
     "list_runs": list_runs,
     "check_disk": check_disk,
     "check_services": check_services,

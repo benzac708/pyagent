@@ -22,11 +22,21 @@
     "container": "pyagent",
     "max_iterations": 5,
     "max_tokens": 8000,
-    "allowed_tools": ["check_disk", "check_backups", "check_failed_services", "list_runs", "check_health", "restart_service"],
+    "allowed_tools": [
+      "check_failed_services",
+      "check_disk",
+      "check_backups",
+      "check_health",
+      "restart_service",
+      "read_journal",
+      "list_processes"
+    ],
     "response_format": "json"
   },
   "remediation": {
-    "restart_allowlist": ["pyagent"],
+    "restart_allowlist": [
+      "pyagent"
+    ],
     "max_restarts": 3,
     "restart_window_seconds": 600
   }

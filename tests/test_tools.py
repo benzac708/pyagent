@@ -113,3 +113,19 @@ def test_check_failed_services_returns_string():
     result = check_failed_services()
     assert isinstance(result, str)
     assert len(result) > 0
+
+
+def test_read_journal_returns_string():
+    from tools.read_journal import read_journal
+
+    result = read_journal("nonexistent.service", lines=5)
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+
+def test_list_processes_returns_string():
+    from tools.list_processes import list_processes
+
+    result = list_processes(sort_by="cpu", count=3)
+    assert isinstance(result, str)
+    assert len(result) > 0
