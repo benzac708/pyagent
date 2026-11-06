@@ -116,6 +116,14 @@ cp deploy/watch-checks.example.json /opt/pyagent/watch-checks.json
 python3 deploy/vps-agent-watch.py  # test manually
 ```
 
+## Uninstall
+
+```bash
+bash deploy/uninstall.sh [--keep-data] [--dry-run]
+```
+
+Removes systemd units, Docker container/image, and app directory. See `deploy/uninstall.sh` for details.
+
 ## Contributing
 
 PRs welcome. Run `uv run pytest && uv run ruff check . && uv run mypy agent/ tools/ api/` before submitting.
