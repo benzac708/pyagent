@@ -7,11 +7,11 @@ A minimal, self-hosted VPS triage agent that diagnoses failures and proposes fix
 
 ## What is this?
 
-- **One job, one loop, minimal toolset** — checks VPS health, produces a structured JSON digest, and stops. No multi-agent orchestration, no framework bloat.
-- **Config-driven** — all checks, thresholds, and allowlists live in `watch-checks.json`. Adding a new check is a JSON edit, not a code change.
-- **Rails in code, not in prompts** — tool allowlists, path denylists, token/iteration caps, and JSON schema validation are enforced by the runtime. The LLM can't override them.
-- **Clone-and-run** — `cp .env.example .env`, fill 3 values, `docker compose up`. Working agent in 60 seconds.
-- **Mock mode** — `MOCK_LLM=true` needs no API key; explore the CLI, tools, and tests without any external service.
+- **One job, one loop, minimal toolset** - checks VPS health, produces a structured JSON digest, and stops. No multi-agent orchestration, no framework bloat.
+- **Config-driven** - all checks, thresholds, and allowlists live in `watch-checks.json`. Adding a new check is a JSON edit, not a code change.
+- **Rails in code, not in prompts** - tool allowlists, path denylists, token/iteration caps, and JSON schema validation are enforced by the runtime. The LLM can't override them.
+- **Clone-and-run** - `cp .env.example .env`, fill 3 values, `docker compose up`. Working agent in 60 seconds.
+- **Mock mode** - `MOCK_LLM=true` needs no API key; explore the CLI, tools, and tests without any external service.
 
 ## Quickstart
 
@@ -37,17 +37,17 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `API_KEY` | Yes (unless `MOCK_LLM=true`) | — | OpenAI-compatible API key |
+| `API_KEY` | Yes (unless `MOCK_LLM=true`) | - | OpenAI-compatible API key |
 | `BASE_URL` | No | `https://api.openai.com/v1` | LLM provider base URL |
 | `MODEL` | No | `gpt-4o-mini` | Model name |
-| `FALLBACK_BASE_URL` | No | — | Fallback provider URL (e.g., Groq) |
-| `FALLBACK_API_KEY` | No | — | Fallback provider API key |
-| `FALLBACK_MODEL` | No | — | Fallback model name |
+| `FALLBACK_BASE_URL` | No | - | Fallback provider URL (e.g., Groq) |
+| `FALLBACK_API_KEY` | No | - | Fallback provider API key |
+| `FALLBACK_MODEL` | No | - | Fallback model name |
 | `DB_PATH` | No | `agent.db` | SQLite database path |
 | `MAX_ITERATIONS` | No | `10` | Hard cap on agent loop iterations |
 | `MAX_TOKENS` | No | `50000` | Hard cap on total tokens per run |
 | `MAX_OUTPUT_RETRIES` | No | `2` | Retries on invalid JSON output |
-| `RESPONSE_FORMAT` | No | — | Set to `json` to enforce JSON output |
+| `RESPONSE_FORMAT` | No | - | Set to `json` to enforce JSON output |
 | `ALLOWED_TOOLS` | No | (all) | Comma-separated tool allowlist |
 | `MOCK_LLM` | No | `false` | Set to `true` for demo mode (no API key) |
 | `LOG_LEVEL` | No | `info` | Log level |
