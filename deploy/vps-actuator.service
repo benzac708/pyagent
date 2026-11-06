@@ -14,5 +14,3 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-EOF
-echo "service written"

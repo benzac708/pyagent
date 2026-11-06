@@ -1,0 +1,14 @@
+[Unit]
+Description=pyagent VPS watcher (cheap health checks every 5 min)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/pyagent
+ExecStart=/opt/pyagent/.venv/bin/python /opt/pyagent/deploy/vps-agent-watch.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

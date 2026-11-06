@@ -131,5 +131,3 @@ PRs welcome. Run `uv run pytest && uv run ruff check . && uv run mypy agent/ too
 ## License
 
 MIT
-EOF
-echo "README written"

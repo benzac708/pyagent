@@ -42,5 +42,3 @@ The agent can read files, check disk/backup health, and query its own run histor
 - Tool outputs are treated as untrusted data.
 - `read_file` has a path denylist for sensitive files.
 - `ALLOWED_TOOLS` filters the registry at import time - the model cannot call tools that don't exist.
-EOF
-echo "SECURITY.md written"
