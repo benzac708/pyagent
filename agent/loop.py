@@ -143,8 +143,10 @@ def _run_loop(
 
             rf = RESPONSE_FORMAT.strip().lower()
             rf_arg = {"type": "json_object"} if rf == "json" else None
-            # Hard rail: filter tools based on tools_filter (only expose relevant tools).
-            if tools_filter:
+            # Hard rail: disable tools on last iterations or when budget exhausted.
+            if tool_call_count >= MAX_TOOL_CALLS or iteration >= MAX_ITERATIONS - 1:
+                available_tools = []
+            elif tools_filter:
                 available_tools = [t for t in TOOLS if t["function"]["name"] in tools_filter]
             else:
                 available_tools = TOOLS
@@ -418,12 +420,23 @@ def _run_loop(
     }
 
 
+TRIAGE_TOOLS = [
+    "check_failed_services",
+    "check_disk",
+    "check_backups",
+    "check_health",
+    "restart_service",
+    "check_services",
+]
+
+
 def run(
     prompt: str,
     verbose: bool = False,
     conv_id: Optional[str] = None,
     quiet: bool = False,
     tools_filter: Optional[list[str]] = None,
+    all_tools: bool = False,
 ) -> dict[str, Any]:
     """Run the agent with a single prompt. Returns a result dict."""
     if conv_id is None:
@@ -432,6 +445,9 @@ def run(
     create_conversation(conv_id)
     save_message(conv_id, "user", content=prompt)
     messages = [{"role": "user", "content": prompt}]
+    # Hard rail: default to triage tools unless all_tools requested.
+    if tools_filter is None and not all_tools:
+        tools_filter = TRIAGE_TOOLS
     return _run_loop(messages, conv_id, verbose=verbose, quiet=quiet, tools_filter=tools_filter)
 
 
