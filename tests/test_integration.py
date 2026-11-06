@@ -1,5 +1,6 @@
 """Integration tests: real tools, provider failover through the loop, CLI."""
 
+import json
 import sqlite3
 from unittest.mock import MagicMock, patch
 
@@ -93,3 +94,146 @@ def test_cli_main_invocation(tmp_db, monkeypatch, capsys):
     assert "cli reply" in captured.out
     runs = db.list_runs(limit=1)
     assert runs[0]["status"] == "completed"
+
+
+def test_loop_with_real_check_disk_tool(tmp_db, monkeypatch):
+    """Agent loop invokes real check_disk tool and persists result."""
+    tc = make_tool_call("tc1", "check_disk", '{"path": "/"}')
+    responses = [
+        make_response(content=None, tool_calls=[tc], total_tokens=5),
+        make_response(content="disk ok", total_tokens=3),
+    ]
+    it = iter(responses)
+
+    def fake_chat(messages, tools=None, response_format=None):
+        return next(it), "primary"
+
+    mock_chain = MagicMock()
+    mock_chain.chat.side_effect = fake_chat
+    monkeypatch.setattr("agent.loop.chain", mock_chain)
+
+    result = loop.run("check disk")
+
+    conn = sqlite3.connect(tmp_db)
+    conv_id = conn.execute("SELECT conv_id FROM runs ORDER BY started_at DESC LIMIT 1").fetchone()[0]
+    tool_msgs = [
+        r[0]
+        for r in conn.execute("SELECT content FROM messages WHERE conv_id=? AND role='tool'", (conv_id,)).fetchall()
+    ]
+    conn.close()
+
+    assert any("path=/" in (m or "") for m in tool_msgs)
+    assert result["status"] == "completed"
+
+
+def test_loop_working_memory_persisted(tmp_db, monkeypatch):
+    """Notes (working memory) are saved to runs table."""
+    tc = make_tool_call("tc1", "check_disk", '{"path": "/"}')
+    responses = [
+        make_response(content=None, tool_calls=[tc], total_tokens=5),
+        make_response(content="done", total_tokens=3),
+    ]
+    it = iter(responses)
+
+    def fake_chat(messages, tools=None, response_format=None):
+        return next(it), "primary"
+
+    mock_chain = MagicMock()
+    mock_chain.chat.side_effect = fake_chat
+    monkeypatch.setattr("agent.loop.chain", mock_chain)
+
+    result = loop.run("check disk")
+
+    assert "check_disk" in result.get("notes", {})
+    # Verify persisted in DB
+    conn = sqlite3.connect(tmp_db)
+    row = conn.execute("SELECT notes FROM runs ORDER BY started_at DESC LIMIT 1").fetchone()
+    conn.close()
+    assert row is not None
+    notes = json.loads(row[0]) if row[0] else {}
+    assert "check_disk" in notes
+
+
+def test_loop_event_log_persisted(tmp_db, monkeypatch):
+    """Event log is saved to runs table."""
+    responses = [make_response(content="hello", total_tokens=5)]
+    it = iter(responses)
+
+    def fake_chat(messages, tools=None, response_format=None):
+        return next(it), "primary"
+
+    mock_chain = MagicMock()
+    mock_chain.chat.side_effect = fake_chat
+    monkeypatch.setattr("agent.loop.chain", mock_chain)
+
+    result = loop.run("hi")
+
+    assert any(e["type"] == "agent_completed" for e in result.get("events", []))
+    conn = sqlite3.connect(tmp_db)
+    row = conn.execute("SELECT events FROM runs ORDER BY started_at DESC LIMIT 1").fetchone()
+    conn.close()
+    assert row is not None
+    events = json.loads(row[0]) if row[0] else []
+    assert any(e["type"] == "agent_completed" for e in events)
+
+
+def test_destructive_tool_requires_confirmation(tmp_db, monkeypatch):
+    """Destructive tool without confirmed=true returns confirmation required."""
+    tc = make_tool_call("tc1", "bash", '{"command": "echo hi"}')
+    responses = [
+        make_response(content=None, tool_calls=[tc], total_tokens=5),
+        make_response(content="done", total_tokens=3),
+    ]
+    it = iter(responses)
+
+    def fake_chat(messages, tools=None, response_format=None):
+        return next(it), "primary"
+
+    mock_chain = MagicMock()
+    mock_chain.chat.side_effect = fake_chat
+    monkeypatch.setattr("agent.loop.chain", mock_chain)
+
+    loop.run("run bash")
+
+    conn = sqlite3.connect(tmp_db)
+    conv_id = conn.execute("SELECT conv_id FROM runs ORDER BY started_at DESC LIMIT 1").fetchone()[0]
+    tool_msgs = [
+        r[0]
+        for r in conn.execute("SELECT content FROM messages WHERE conv_id=? AND role='tool'", (conv_id,)).fetchall()
+    ]
+    conn.close()
+
+    assert any("Confirmation required" in (m or "") for m in tool_msgs)
+
+
+def test_parallel_tool_execution(tmp_db, monkeypatch):
+    """Multiple tools in one turn execute and persist results."""
+    tc1 = make_tool_call("tc1", "check_disk", '{"path": "/"}')
+    tc2 = make_tool_call("tc2", "check_services", '{"services": ["nginx"]}')
+    responses = [
+        make_response(content=None, tool_calls=[tc1, tc2], total_tokens=5),
+        make_response(content="done", total_tokens=3),
+    ]
+    it = iter(responses)
+
+    def fake_chat(messages, tools=None, response_format=None):
+        return next(it), "primary"
+
+    mock_chain = MagicMock()
+    mock_chain.chat.side_effect = fake_chat
+    monkeypatch.setattr("agent.loop.chain", mock_chain)
+
+    loop.run("check everything")
+
+    conn = sqlite3.connect(tmp_db)
+    conv_id = conn.execute("SELECT conv_id FROM runs ORDER BY started_at DESC LIMIT 1").fetchone()[0]
+    tool_msgs = [
+        r[0]
+        for r in conn.execute("SELECT content FROM messages WHERE conv_id=? AND role='tool'", (conv_id,)).fetchall()
+    ]
+    conn.close()
+
+    assert len(tool_msgs) == 2
+    runs = db.list_runs(limit=1)
+    assert runs[0]["status"] == "completed"
+    assert runs[0]["iterations"] == 2
