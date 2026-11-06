@@ -75,5 +75,3 @@ echo "Remaining manual steps:"
 echo "  1. Remove pyagent.zachara.dev from Caddyfile + reload caddy"
 echo "  2. Remove Tailscale ACLs if any"
 echo "  3. Delete GitHub repo if desired: gh repo delete benzac708/pyagent"
-EOF
-echo "written"
