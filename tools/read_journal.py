@@ -7,11 +7,14 @@ from pydantic import BaseModel
 
 class ReadJournalInput(BaseModel):
     unit: str
+    service: str = ""
     lines: int = 20
 
 
-def read_journal(unit: str, lines: int = 20) -> str:
+def read_journal(unit: str = "", service: str = "", lines: int = 20) -> str:
     """Return the last N journal lines for a systemd unit. Read-only."""
+    if not unit and service:
+        unit = service
     try:
         r = subprocess.run(
             ["journalctl", "-u", unit, "--no-pager", "-n", str(lines)],
