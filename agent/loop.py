@@ -81,6 +81,7 @@ SYSTEM_PROMPT = (
 )
 
 MAX_TOOL_RESULT_CHARS = 1000
+MAX_TOOL_CALLS = 3  # Hard limit on tool calls per run
 
 
 def _run_loop(
@@ -88,6 +89,7 @@ def _run_loop(
     conv_id: str,
     verbose: bool = False,
     quiet: bool = False,
+    tools_filter: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """Shared execution loop used by run() and resume. Returns a result dict."""
     run_id = str(uuid.uuid4())[:8]
@@ -103,6 +105,8 @@ def _run_loop(
     started_at = datetime.now(timezone.utc).isoformat()
     notes: dict[str, Any] = {}  # working memory: latest result per tool
     events: list[dict[str, Any]] = []  # simple event log
+    tool_call_count = 0  # Hard rail: track total tool calls
+    tool_call_cache: dict[str, str] = {}  # Hard rail: deduplicate tool calls
 
     # Inject system prompt if not already present.
     if not any(m.get("role") == "system" for m in messages):
@@ -124,12 +128,27 @@ def _run_loop(
                 )
                 save_message(conv_id, "user", content="Output your final JSON answer now.")
 
+            # Hard rail: inject iteration budget into context.
+            if iteration > 0:
+                budget_msg = f"Iteration {iteration + 1} of {MAX_ITERATIONS}. "
+                if tool_call_count >= MAX_TOOL_CALLS:
+                    budget_msg += "Tool call budget exhausted. Output final JSON now."
+                else:
+                    budget_msg += f"Tool calls used: {tool_call_count}/{MAX_TOOL_CALLS}."
+                messages.append({"role": "user", "content": budget_msg})
+                save_message(conv_id, "user", content=budget_msg)
+
             if verbose:
                 print(f"[iteration {iteration + 1}]")
 
             rf = RESPONSE_FORMAT.strip().lower()
             rf_arg = {"type": "json_object"} if rf == "json" else None
-            response, provider_name = get_chain().chat(messages, TOOLS, response_format=rf_arg)
+            # Hard rail: filter tools based on tools_filter (only expose relevant tools).
+            if tools_filter:
+                available_tools = [t for t in TOOLS if t["function"]["name"] in tools_filter]
+            else:
+                available_tools = TOOLS
+            response, provider_name = get_chain().chat(messages, available_tools, response_format=rf_arg)
             msg = response.choices[0].message
             total_tokens += response.usage.total_tokens if response.usage else 0
             # Event log: generation completed.
@@ -198,63 +217,119 @@ def _run_loop(
                     print(msg.content)
                 break
 
-            # Execute tool calls in parallel (read-only tools can run concurrently).
-            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(msg.tool_calls), 8)) as pool:
-                futures: list[tuple[Any, Optional[dict[str, Any]], Optional[str]]] = []
-                for tc in msg.tool_calls:
-                    if verbose:
-                        print(f"  tool: {tc.function.name}({tc.function.arguments})")
-                    try:
-                        args = json.loads(tc.function.arguments or "{}")
-                    except (json.JSONDecodeError, TypeError) as e:
-                        args = None
-                        err_result = f"Error: invalid tool arguments: {e}"
-                        futures.append((tc, None, err_result))
-                        continue
-                    if tc.function.name in VERIFICATION_TOOLS:
-                        verified_called = True
-                    futures.append((tc, args, None))
+            # Hard rail: check if we should execute tools or force convergence.
+            should_execute = True
+            if tool_call_count >= MAX_TOOL_CALLS:
+                should_execute = False
+            if iteration >= MAX_ITERATIONS - 1:
+                should_execute = False
 
-                # Run valid tools in parallel.
-                def _run(tc: Any, args: dict[str, Any]) -> str:
-                    return execute_tool(tc.function.name, args)
+            if not should_execute:
+                # Force convergence: don't execute tools, ask for final output.
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": "Tool call budget exhausted. " "Output your final JSON answer now.",
+                    }
+                )
+                save_message(conv_id, "user", content="Tool call budget exhausted. Output final JSON.")
+                continue
 
-                future_map: dict[str, concurrent.futures.Future[str]] = {}
-                for tc, args, err in futures:
-                    if args is None:
-                        continue
-                    future_map[tc.id] = pool.submit(_run, tc, args)
-
-                # Collect results in original order.
-                for tc in msg.tool_calls:
-                    if tc.id in future_map:
-                        try:
-                            result = future_map[tc.id].result()
-                        except Exception as e:
-                            result = f"Error: {e}"
-                    else:
-                        # Invalid args case: find the error result.
-                        result = "Error: invalid tool arguments"
-                        for t, a, err_val in futures:
-                            if t.id == tc.id and err_val is not None:
-                                result = err_val
-                                break
-                    if verbose:
-                        print(f"  result: {str(result)[:200]}")
-                    truncated = str(result)[:MAX_TOOL_RESULT_CHARS]
-                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": truncated})
-                    save_message(conv_id, "tool", content=str(result), tool_call_id=tc.id)
-                    # Working memory: keep latest result per tool (truncated).
-                    notes[tc.function.name] = str(result)[:500]
-                    # Event log: tool completed.
-                    events.append(
+            if msg.tool_calls:
+                # Hard rail: if tool budget exhausted or on last iteration, force convergence.
+                if tool_call_count >= MAX_TOOL_CALLS or iteration >= MAX_ITERATIONS - 1:
+                    messages.append(
                         {
-                            "type": "tool_completed",
-                            "tool": tc.function.name,
-                            "is_error": str(result).startswith("Error:"),
-                            "ts": time.time(),
+                            "role": "user",
+                            "content": "You must output your final JSON answer now. " "Do not call more tools.",
                         }
                     )
+                    save_message(conv_id, "user", content="Output your final JSON answer now.")
+                    continue
+
+                # Execute tool calls in parallel.
+                with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(msg.tool_calls), 8)) as pool:
+                    futures: list[tuple[Any, Optional[dict[str, Any]], Optional[str]]] = []
+                    for tc in msg.tool_calls:
+                        if verbose:
+                            print(f"  tool: {tc.function.name}({tc.function.arguments})")
+                        try:
+                            args = json.loads(tc.function.arguments or "{}")
+                        except (json.JSONDecodeError, TypeError) as e:
+                            args = None
+                            err_result = f"Error: invalid tool arguments: {e}"
+                            futures.append((tc, None, err_result))
+                            continue
+                        if tc.function.name in VERIFICATION_TOOLS:
+                            verified_called = True
+                        futures.append((tc, args, None))
+
+                    # Run valid tools in parallel.
+                    def _run(tc: Any, args: dict[str, Any]) -> str:
+                        return execute_tool(tc.function.name, args)
+
+                    future_map: dict[str, concurrent.futures.Future[str]] = {}
+                    for tc, args, err in futures:
+                        if args is None:
+                            continue
+                        # Hard rail: deduplicate tool calls.
+                        cache_key = f"{tc.function.name}:{json.dumps(args, sort_keys=True)}"
+                        if cache_key in tool_call_cache:
+                            cached = tool_call_cache[cache_key]
+                            messages.append({"role": "tool", "tool_call_id": tc.id, "content": cached})
+                            save_message(conv_id, "tool", content=cached, tool_call_id=tc.id)
+                            notes[tc.function.name] = cached[:500]
+                            events.append(
+                                {
+                                    "type": "tool_completed",
+                                    "tool": tc.function.name,
+                                    "is_error": False,
+                                    "ts": time.time(),
+                                    "cached": True,
+                                }
+                            )
+                            continue
+                        future_map[tc.id] = pool.submit(_run, tc, args)
+
+                    # Collect results in original order.
+                    for tc in msg.tool_calls:
+                        if tc.id in future_map:
+                            try:
+                                result = future_map[tc.id].result()
+                            except Exception as e:
+                                result = f"Error: {e}"
+                        else:
+                            result = "Error: invalid tool arguments"
+                            for t, a, err_val in futures:
+                                if t.id == tc.id and err_val is not None:
+                                    result = err_val
+                                    break
+                        if verbose:
+                            print(f"  result: {str(result)[:200]}")
+                        truncated = str(result)[:MAX_TOOL_RESULT_CHARS]
+                        messages.append({"role": "tool", "tool_call_id": tc.id, "content": truncated})
+                        save_message(conv_id, "tool", content=str(result), tool_call_id=tc.id)
+                        # Hard rail: increment tool call counter.
+                        tool_call_count += 1
+                        # Hard rail: cache result for deduplication.
+                        try:
+                            cache_args = json.loads(tc.function.arguments or "{}")
+                            cache_key = f"{tc.function.name}:{json.dumps(cache_args, sort_keys=True)}"
+                            tool_call_cache[cache_key] = str(result)[:MAX_TOOL_RESULT_CHARS]
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                        # Working memory: keep latest result per tool (truncated).
+                        notes[tc.function.name] = str(result)[:500]
+                        # Event log: tool completed.
+                        events.append(
+                            {
+                                "type": "tool_completed",
+                                "tool": tc.function.name,
+                                "is_error": str(result).startswith("Error:"),
+                                "ts": time.time(),
+                            }
+                        )
+
         else:
             status = "max_iterations"
             if not quiet:
@@ -305,6 +380,24 @@ def _run_loop(
         events=len(events),
     )
 
+    # Hard rail: guaranteed fallback response (never return null).
+    if final_content is None:
+        # Construct fallback from notes and events.
+        findings = []
+        for tool_name, result in notes.items():
+            findings.append(f"{tool_name}: {result[:200]}")
+        if not findings:
+            findings = ["No findings  -  agent did not produce output."]
+        fallback = {
+            "status": "unknown",
+            "findings": findings,
+            "recommendations": ["Manual review required."],
+            "verified": False,
+        }
+        final_content = json.dumps(fallback)
+        status = "completed" if status != "error" else status
+        log.warning("fallback_response_generated", run_id=run_id, reason="no_valid_json")
+
     if verbose and not quiet:
         print(
             f"\n[run] id={run_id} conv={conv_id} provider={provider_name} "
@@ -325,7 +418,13 @@ def _run_loop(
     }
 
 
-def run(prompt: str, verbose: bool = False, conv_id: Optional[str] = None, quiet: bool = False) -> dict[str, Any]:
+def run(
+    prompt: str,
+    verbose: bool = False,
+    conv_id: Optional[str] = None,
+    quiet: bool = False,
+    tools_filter: Optional[list[str]] = None,
+) -> dict[str, Any]:
     """Run the agent with a single prompt. Returns a result dict."""
     if conv_id is None:
         conv_id = str(uuid.uuid4())[:8]
@@ -333,7 +432,7 @@ def run(prompt: str, verbose: bool = False, conv_id: Optional[str] = None, quiet
     create_conversation(conv_id)
     save_message(conv_id, "user", content=prompt)
     messages = [{"role": "user", "content": prompt}]
-    return _run_loop(messages, conv_id, verbose=verbose, quiet=quiet)
+    return _run_loop(messages, conv_id, verbose=verbose, quiet=quiet, tools_filter=tools_filter)
 
 
 def main(
