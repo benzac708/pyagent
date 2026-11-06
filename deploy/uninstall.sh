@@ -52,20 +52,21 @@ run "docker stop pyagent 2>/dev/null || true"
 run "docker rm pyagent 2>/dev/null || true"
 run "docker rmi pyagent 2>/dev/null || true"
 
-# 4. Remove Caddy config (manual - user should edit Caddyfile)
+# 4. Remove Caddy config (manual)
 echo "--- Caddy ---"
 echo "  Manually remove the pyagent.zachara.dev block from your Caddyfile"
 echo "  and run: sudo systemctl reload caddy"
 
-# 5. Remove app directory (optional)
+# 5. Remove app directory (with sudo for permission issues)
 echo "--- App directory ---"
 APP_DIR="/opt/pyagent"
 if [ "$KEEP_DATA" = true ]; then
   echo "  Keeping data (--keep-data). App code removed, .env and agent.db preserved."
-  run "find $APP_DIR -mindepth 1 -maxdepth 1 ! -name 'agent.db' ! -name '.env' -exec rm -rf {} + 2>/dev/null || true"
+  run "sudo rm -rf ${APP_DIR}/agent ${APP_DIR}/tools ${APP_DIR}/api ${APP_DIR}/tests ${APP_DIR}/deploy ${APP_DIR}/scripts ${APP_DIR}/.github ${APP_DIR}/.venv 2>/dev/null || true"
+  run "sudo rm -f ${APP_DIR}/Dockerfile ${APP_DIR}/Makefile ${APP_DIR}/pyproject.toml ${APP_DIR}/README.md ${APP_DIR}/SECURITY.md ${APP_DIR}/.env.example ${APP_DIR}/.pre-commit-config.yaml ${APP_DIR}/.gitignore 2>/dev/null || true"
 else
-  run "rm -rf $APP_DIR"
-  echo "  Removed $APP_DIR (including agent.db and .env)"
+  run "sudo rm -rf ${APP_DIR}"
+  echo "  Removed ${APP_DIR} (including agent.db and .env)"
 fi
 
 echo ""
@@ -74,3 +75,5 @@ echo "Remaining manual steps:"
 echo "  1. Remove pyagent.zachara.dev from Caddyfile + reload caddy"
 echo "  2. Remove Tailscale ACLs if any"
 echo "  3. Delete GitHub repo if desired: gh repo delete benzac708/pyagent"
+EOF
+echo "written"
