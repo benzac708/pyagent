@@ -1,5 +1,6 @@
 """Agent loop. Orchestrates LLM calls and tool execution."""
 
+import concurrent.futures
 import json
 import uuid
 from datetime import datetime, timezone
@@ -146,25 +147,53 @@ def _run_loop(
                     print(msg.content)
                 break
 
-            for tc in msg.tool_calls:
-                if verbose:
-                    print(f"  tool: {tc.function.name}({tc.function.arguments})")
-                try:
-                    args = json.loads(tc.function.arguments or "{}")
-                except (json.JSONDecodeError, TypeError) as e:
-                    result = f"Error: invalid tool arguments: {e}"
-                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
-                    save_message(conv_id, "tool", content=result, tool_call_id=tc.id)
-                    continue
-                if tc.function.name in VERIFICATION_TOOLS:
-                    verified_called = True
-                result = execute_tool(tc.function.name, args)
-                if verbose:
-                    print(f"  result: {result[:200]}")
-                messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
-                save_message(conv_id, "tool", content=result, tool_call_id=tc.id)
-                # Working memory: keep latest result per tool (truncated).
-                notes[tc.function.name] = result[:500] if isinstance(result, str) else result
+            # Execute tool calls in parallel (read-only tools can run concurrently).
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(msg.tool_calls), 8)) as pool:
+                futures = []
+                for tc in msg.tool_calls:
+                    if verbose:
+                        print(f"  tool: {tc.function.name}({tc.function.arguments})")
+                    try:
+                        args = json.loads(tc.function.arguments or "{}")
+                    except (json.JSONDecodeError, TypeError) as e:
+                        args = None
+                        err_result = f"Error: invalid tool arguments: {e}"
+                        futures.append((tc, None, err_result))
+                        continue
+                    if tc.function.name in VERIFICATION_TOOLS:
+                        verified_called = True
+                    futures.append((tc, args, None))
+
+                # Run valid tools in parallel.
+                def _run(tc, args):
+                    return execute_tool(tc.function.name, args)
+
+                future_map = {}
+                for tc, args, err in futures:
+                    if args is None and err is not None:
+                        continue
+                    future_map[tc.id] = pool.submit(_run, tc, args)
+
+                # Collect results in original order.
+                for tc in msg.tool_calls:
+                    if tc.id in future_map:
+                        try:
+                            result = future_map[tc.id].result()
+                        except Exception as e:
+                            result = f"Error: {e}"
+                    else:
+                        # Invalid args case: find the error result.
+                        result = "Error: invalid tool arguments"
+                        for t, a, e in futures:
+                            if t.id == tc.id and e is not None:
+                                result = e
+                                break
+                    if verbose:
+                        print(f"  result: {str(result)[:200]}")
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
+                    save_message(conv_id, "tool", content=str(result), tool_call_id=tc.id)
+                    # Working memory: keep latest result per tool (truncated).
+                    notes[tc.function.name] = str(result)[:500]
         else:
             status = "max_iterations"
             if not quiet:
