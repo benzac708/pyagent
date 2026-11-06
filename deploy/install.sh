@@ -37,7 +37,7 @@ echo "=== pyagent installer ==="
 echo "--- Cloning repo ---"
 if [ -d "$APP_DIR" ]; then
   echo "  $APP_DIR already exists. Pulling latest..."
-  run "cd $APP_DIR && git pull origin main"
+  run "cd $APP_DIR && git stash && git pull origin main && git stash pop || true"
 else
   run "sudo git clone $REPO_URL $APP_DIR"
   run "sudo chown -R ubuntu:ubuntu $APP_DIR"
