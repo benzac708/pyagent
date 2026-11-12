@@ -9,8 +9,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v4.4.0
+      - uses: astral-sh/setup-uv@v3.2.4
       - run: uv sync --all-extras
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -22,7 +22,7 @@ jobs:
           fi
       - run: uv run mypy agent/ tools/ api/
       - run: uv run pytest
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: docker build -t pyagent .
